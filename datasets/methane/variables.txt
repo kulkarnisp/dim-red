@@ -1,0 +1,6 @@
+Wrongspecs = "time, Y_h2, Y_o2, Y_o, Y_oh, Y_h2o, Y_h, Y_ho2, Y_h2o2, Y_n2, temp, P_h2, P_o2, P_o, P_oh, P_h2o, P_h, P_ho2, P_h2o2, P_n2"
+nx = 1024
+ny = 1
+nv = 17
+fnameoffset = 13
+specs = 'H2, O2, O, OH, H2O, H, HO2, H2O2, CO, CO2, HCO, N2, T, P, vx, vy, vz'
