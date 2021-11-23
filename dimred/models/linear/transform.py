@@ -66,9 +66,12 @@ def co_kurtosis(rand_mat,bias=0):
 
 
 class Kurtosis:
-    def __init__(self,n_retain=4) -> None:
+    def __init__(self,n_retain=4,mom_path=None) -> None:
         self.n_retain = n_retain
+        
         # pass
+
+    # def recallMoments(self):
 
     def fit(self, X, moment=co_variance):
         self.cm = moment(X)
@@ -78,6 +81,8 @@ class Kurtosis:
         
     def transform(self,X):
         return np.dot(self.vectors,X)
+
+    # TodOdef transform@
     
     def fit_transform(self,x):
         self.fit(x)
