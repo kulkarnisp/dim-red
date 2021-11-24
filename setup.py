@@ -14,7 +14,7 @@ install_requires = [x.strip() for x in all_reqs if 'git+' not in x]
 dependency_links = [x.strip().replace('git+', '') for x in all_reqs if x.startswith('git+')]
 
 setup(
-    name='scanpy',
+    name='dimred',
     version=__version__,
     description='Anomaly detection for scientific simulations; simulations and time series datasets',
     url='https://github.com/kulkarnisp/madana/',
