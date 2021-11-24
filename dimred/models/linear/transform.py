@@ -90,7 +90,7 @@ class Kurtosis:
 
     def transform2(self,X):
         projection = self.transform(X)
-        return np.outer(self.vectors,projection)
+        return np.dot(projection,self.vectors.T)
     
     def fit_transform(self,x):
         self.fit(x)
