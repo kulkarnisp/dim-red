@@ -2,6 +2,7 @@
 import numpy as np
 import functools as fc
 
+
 def MinMaxScalar(x):
     ## x is a one dimensional array 
     x  -= x.min()
@@ -80,27 +81,21 @@ class Kurtosis:
             self.recallMoments()
         else:
             self.cm = moment(X)
-        u,s,v = np.linalg.svd(self.cm,full_matrices=False)
-        self.vectors = u[:self.n_retain]
+        u,s,v = np.linalg.svd(self.cm.T,full_matrices=False)
+        self.vectors = u[:,:self.n_retain]
         self.values = s[:self.n_retain]
         
     def transform(self,X):
-        return np.dot(self.vectors,X)
+        return np.dot(X,self.vectors)
 
     def transform2(self,X):
-        projection = np.dot(self.vectors,X)
+        projection = self.transform(X)
         return np.outer(self.vectors,projection)
     
     def fit_transform(self,x):
         self.fit(x)
         return self.transform(x)
 
-    # def plot_plane(self,X):
-    #     xr = self.fit_transform(X)[:,:2]
-    #     plt.scatter(*xr.T)
-
-
-    # def plot_embedding():
 
     # def decode(self):
 #   
