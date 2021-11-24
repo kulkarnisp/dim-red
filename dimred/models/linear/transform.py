@@ -68,21 +68,28 @@ def co_kurtosis(rand_mat,bias=0):
 class Kurtosis:
     def __init__(self,n_retain=4,mom_path=None) -> None:
         self.n_retain = n_retain
-        
+        self.mom_path = mom_path
         # pass
 
-    # def recallMoments(self):
+    def recallMoments(self):
+        ## todo add sanity checks, file exists ! is valid?
+        self.cm = np.load(self.mom_path)
 
     def fit(self, X, moment=co_variance):
-        self.cm = moment(X)
-        u,s,v = np.linalg.svd(cm,full_matrices=False)
+        if self.mom_path!=None:
+            self.recallMoments()
+        else:
+            self.cm = moment(X)
+        u,s,v = np.linalg.svd(self.cm,full_matrices=False)
         self.vectors = u[:self.n_retain]
         self.values = s[:self.n_retain]
         
     def transform(self,X):
         return np.dot(self.vectors,X)
 
-    # TodOdef transform@
+    def transform2(self,X):
+        projection = np.dot(self.vectors,X)
+        return np.outer(self.vectors,projection)
     
     def fit_transform(self,x):
         self.fit(x)
