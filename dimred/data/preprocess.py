@@ -1,3 +1,4 @@
+from matplotlib.pyplot import axis
 import numpy as np
 import functools as fc
 from functools import partial
@@ -26,10 +27,12 @@ def NoScalar(x):
 
 def forward(x,substract,divide):
     x -= substract
-    if any(divide) == 0:
-        print("Divide by zero Error")
-    else:
-        x = x/divide
+    # if any(divide) == 0:
+    #     print("Divide by zero Error")
+    # else:
+    #     x = x/divide
+    zids = divide!=0
+    x[:,zids] /= divide[zids]  ## amaze babe
     return x
 
 def reverse(x,substract,divide):
@@ -37,6 +40,7 @@ def reverse(x,substract,divide):
     x += substract
     return x
 
+scale_sanity = lambda x: print(f"Maxima is {x.max():.2f} \n Minima is {x.min():.2f} \n {x.shape}")
 
 class Scalar:
     def __init__(self,scale_fun=MinMaxScalar) -> None:
@@ -58,8 +62,12 @@ class Scalar:
         ## shape of X is sklearn format (nsampes, nfeats)
         return np.array([self.scale_fun(x) for x in dat.T]).T
         
-    def transform2(self,dat):
-        return reverse(dat,self.subs,self.divs)
+    def transform2(self,dat,keep_status=False):
+        if keep_status:
+            subs = dat.min(axis=0)
+            divs = subs - dat.max(axis=1)
+
+        return reverse(dat,self.subs,self.divs).copy()
 
 def scaleData(tdat,scalar=ZeroMeanScalar,threshold=1e-11):
     ## input data usually has to be transped
@@ -76,9 +84,9 @@ def scaleData(tdat,scalar=ZeroMeanScalar,threshold=1e-11):
 
 
 
-scaleMax = lambda dat : np.array([MinMaxScalar(x) for x in dat.T]).T
-scaleStd = lambda dat : np.array([ZeroMeanScalar(x) for x in dat.T]).T
-scaleAvg = lambda dat : np.array([MeanMaxScalar(x) for x in dat.T]).T
+# scaleMax = lambda dat : np.array([MinMaxScalar(x) for x in dat.T]).T
+# scaleStd = lambda dat : np.array([ZeroMeanScalar(x) for x in dat.T]).T
+# scaleAvg = lambda dat : np.array([MeanMaxScalar(x) for x in dat.T]).T
 
 ### TODO
 ### ext. scalar class with fun as args
