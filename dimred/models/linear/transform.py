@@ -3,42 +3,6 @@ import numpy as np
 import functools as fc
 
 
-def MinMaxScalar(x):
-    ## x is a one dimensional array 
-    x  -= x.min()
-    xmax = x.max()
-    return x/xmax
-
-def MeanMaxScalar(x):
-    ## x is a feature set:
-    x -= x.mean()
-    return x/x.max()
-
-def ZeroMeanScalar(x):
-    ## x is a one dimensional array 
-    x -= x.mean()
-    vx = x.var()
-    if vx == 0:
-        print("Divide by zero Error")
-    return x/vx
-
-def NoScalar(x):
-    return x/x.max()
-
-
-def scaleData(tdat,scalar=ZeroMeanScalar,threshold=1e-11):
-    ## input data usually has to be transped
-    ## so outermost index corresp to feat
-    adat = []
-    ignor = []
-    for i,a in enumerate(tdat.T):
-        if featIgnore(a,eta=threshold):
-            ignor.append(i)  ## ignore is decided using athresh
-        else:
-            adat.append(scalar(a))
-    print("Ignored Features are",ignor)
-    return np.array(adat).T
-
 def co_variance(X,bias=0):
     nx,i = X.shape ## X is input data matrix 
     ans = np.zeros((i,i),dtype=float)
