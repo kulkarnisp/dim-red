@@ -6,4 +6,5 @@ cvxopt
 scipy
 progressbar33
 terminaltables
+## through conda: cantera
 ## gym
