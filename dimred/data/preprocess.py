@@ -51,7 +51,7 @@ class Scalar:
         self.divs -= self.subs
 
     def transform(self,dat):
-        return forward(dat)
+        return forward(dat,self.subs,self.divs)
 
 
     def fit_transform(self,dat):
@@ -59,7 +59,7 @@ class Scalar:
         return np.array([self.scale_fun(x) for x in dat.T]).T
         
     def transform2(self,dat):
-        return reverse(dat)
+        return reverse(dat,self.subs,self.divs)
 
 def scaleData(tdat,scalar=ZeroMeanScalar,threshold=1e-11):
     ## input data usually has to be transped
