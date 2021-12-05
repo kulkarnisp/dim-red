@@ -9,7 +9,7 @@ import matplotlib.pyplot as plot
 
 class DimRedAnalysis:
     '''Class to analyse the datasets for dimensionality reduction.
-    
+
     Inputs:
         dataset: The combustion dataset to be used (default 1D syngas)
         scaling_type: Type of scaling (default MinMax)
@@ -30,10 +30,10 @@ class DimRedAnalysis:
         self.pvecs_kur = dict()
         self.pvals_cov = dict()
         self.pvals_kur = dict()
-        
+
         # get dimensions of dataset
         self.dataset_dimensions = self.read_and_clean_data(0).shape
-        
+
     def analyse_checkpoint(self, checkpoint_id):
         '''Method to analyse one checkpoint
         
@@ -110,10 +110,10 @@ class DimRedAnalysis:
                 self.linear_reconstruction(cov_lower_rank, retain_cv_vecs)
             kur_full_rank_scaled, kur_full_rank = \
                 self.linear_reconstruction(kur_lower_rank, retain_ku_vecs)
-            
+
         return (cov_full_rank, kur_full_rank, 
                 cov_full_rank_scaled, kur_full_rank_scaled)
-        
+
     def read_and_clean_data(self, idx):
         '''Read and clean the data to return an ndarray of size
         (nGridPoints, nSpecies+1)
@@ -128,13 +128,11 @@ class DimRedAnalysis:
     def get_pcs_and_pvs(self, data, moment_type, retain=-1):
         '''Method to obtain the principal components (vectors) & principle
         values from the data using a specified type of moment
-        
+
         Inputs:
             1.) data = numpy ndarray containing the data with
                        Nspecies + 1(Temp) variables
-
             2.) moment_type = function to evaluate the covariance/cokurtosis
-            
             3.) retain = number of components to retain
                         (by default retain all components)
 
@@ -146,7 +144,7 @@ class DimRedAnalysis:
         vectors = u[...,:keep_features] 
         values = s[:keep_features]
         return vectors, values
-        
+
     def linear_reconstruction(self, data, vectors):
         # reconstruct the scaled data
         recon_scaled = numpy.dot(data, vectors.T)
