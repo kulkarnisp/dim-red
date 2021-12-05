@@ -32,7 +32,7 @@ class DimRedAnalysis:
         self.pvals_kur = dict()
 
         # get dimensions of dataset
-        self.dataset_dimensions = self.read_and_clean_data(0).shape
+        self.dataset_dimensions = list(self.read_and_clean_data(0).shape)
 
     def analyse_checkpoint(self, checkpoint_id):
         '''Method to analyse one checkpoint
@@ -152,6 +152,48 @@ class DimRedAnalysis:
         # !!! transform2 is implemented only for the MinMax Scaling
         reconstructed_data = self.scaler.transform2(recon_scaled)
         return recon_scaled, reconstructed_data
+
+    def get_temporal_errors_1D(self, retain=-1,
+            reconstruction_type='linear',
+            xRegionStart=None, xRegionEnd=None):
+        '''
+        '''
+        keep_features = self.max_features if retain == -1 else retain
+        tmax = len(self.loader.flist)
+
+        # region of interest
+        xs = 0 if isinstance(xRegionStart, type(None)) else xRegionStart
+        xe = self.dataset_dimensions[0] if \
+                isinstance(xRegionEnd, type(None)) else xRegionEnd
+
+        array_shape = list([tmax]) + self.dataset_dimensions
+        array_shape[1] = xe-xs
+
+        errCV = numpy.zeros(array_shape)
+        errCK = numpy.zeros(array_shape)
+        errCVscaled = numpy.zeros(array_shape)
+        errCKscaled = numpy.zeros(array_shape)
+
+
+        for t in range(tmax):
+            oData, sData, cvPvecs, cvPvals, kuPvecs, kuPvals = \
+                    self.analyse_checkpoint(checkpoint_id=t)
+
+            scaled_data = sData[xs:xe, :]
+            original_data = oData[xs:xe,:]
+
+            rCV, rCK, rsCV, rsCK = self.get_reconstructed_data(
+                    scaled_data=scaled_data,
+                    cov_pvecs=cvPvecs, kur_pvecs=kuPvecs,
+                    retain=keep_features,
+                    reconstruction_type=reconstruction_type)
+
+            errCV[t] = abs(original_data - rCV)
+            errCK[t] = abs(original_data - rCK)
+            errCVscaled[t]=abs(scaled_data-rsCV)
+            errCKscaled[t]=abs(scaled_data-rsCK)
+
+        return errCV, errCK, errCVscaled, errCKscaled
     
     def plot_pvals_vs_modes(self, scaled_data, idx, region=0):
         '''Plot the Principal Components against the Eigen modes.
