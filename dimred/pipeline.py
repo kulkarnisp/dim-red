@@ -224,13 +224,15 @@ class DimRedAnalysis:
         # obtain principal vectors and values using co-variance 
         # and co-kurtosis
         cov_pvecs, cov_pvals = self.get_pcs_and_pvs(data=scaled_data,
-                                                moment_type=co_variance)
+                moment_type=co_variance)
         kur_pvecs, kur_pvals = self.get_pcs_and_pvs(data=scaled_data,
-                                                moment_type=co_kurtosis)
+                moment_type=co_kurtosis)
         if len(cov_pvecs.shape) == 2:
             inclination = numpy.einsum('ij, ij -> j', cov_pvecs,
-                    kur_pvecs)
+                                                      kur_pvecs)
+
         plot.plot(numpy.absolute(inclination))
         plot.xlabel('Eigen Modes')
         plot.ylabel('Inclination')
+        plot.xticks(numpy.arange(self.max_features))
         plot.savefig("inclination_id%s_region%s"%(idx, region))
