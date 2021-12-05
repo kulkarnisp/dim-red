@@ -188,10 +188,10 @@ class DimRedAnalysis:
                     retain=keep_features,
                     reconstruction_type=reconstruction_type)
 
-            errCV[t] = abs(original_data - rCV)
-            errCK[t] = abs(original_data - rCK)
-            errCVscaled[t]=abs(scaled_data-rsCV)
-            errCKscaled[t]=abs(scaled_data-rsCK)
+            errCV[t] = abs(original_data - rCV)/original_data
+            errCK[t] = abs(original_data - rCK)/original_data
+            errCVscaled[t]=abs(scaled_data-rsCV)/scaled_data
+            errCKscaled[t]=abs(scaled_data-rsCK)/scaled_data
 
         return errCV, errCK, errCVscaled, errCKscaled
     
