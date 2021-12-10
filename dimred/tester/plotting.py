@@ -6,22 +6,22 @@ import numpy as np
 #     pass
 
 
-def plot_compare(xold,xnew,titler="Species -X",iserr=False,species=2):
+def plot_compare(xold,xnew,titler="Species -X",species=2):
+    avg_err = np.mean((xold-xnew)**2)
     xold = xold[:,species]
     xnew = xnew[:,species]
-    plt.plot(xold, label="Origin")
-    plt.plot(xnew,label="Reconstr")
+    fig,ax = plt.subplots(ncols=2,figsize=(13,6))
+    ax[0].plot(xold,label="Origin")
+    ax[0].plot(xnew,label="Reconstr")
     err = np.mean((xold-xnew)**2)
-    print(f"Error is {err:.4f}")
-    plt.title(titler+f"err:{err:.4f}")
-    plt.legend()
-    plt.show()
+    print(f"Average Error is {avg_err:.4f}")
+    ax[0].set_title(titler+f"{species} err:{err:.4f}")
+    ax[1].plot(np.abs(xold-xnew),"g")
+    ax[1].set_title("Reconstruction Error")
 
-    if iserr:
-        plt.plot(np.abs(xold-xnew),"g")
-        plt.title("Reconstruction Error")
+    ax[0].legend()
+    plt.show()
     return err
-        
 
 
 def plot_planar(embd_vector):

@@ -9,6 +9,7 @@ def co_variance(X,bias=0):
     for a in X:
         ans += np.outer(a,a)
     return ans/(nx-bias)
+co_variance.name = "co_variance" ## absolute abuse!
 
 def ex_variance(cm):
     i,_ = cm.shape
@@ -21,12 +22,14 @@ def ra_kurtosis(X,bias=0):
     for a in X:
         ans += np.outer(np.outer(np.outer(a,a),a),a)
     return ans/(nx-bias)
+ra_kurtosis.name="Raw_kurtosis"
 
 def co_kurtosis(rand_mat,bias=0):
     ck = ra_kurtosis(rand_mat,bias)
     cm = co_variance(rand_mat,bias)
     ev = ex_variance(cm)
     return ck- 3*ev
+co_kurtosis.name = "co_kurtosis" ## behold!
 
 
 
