@@ -14,6 +14,13 @@ def MeanMaxScalar(x):
     x -= x.mean()
     return x/x.max()
 
+
+def AvgMaxScalar(x):
+    x -= x.mean()
+    xmax = abs(x).max()
+    return x/=xmax
+
+
 def ZeroMeanScalar(x):
     ## x is a one dimensional array 
     x -= x.mean()
@@ -59,8 +66,10 @@ class Scalar:
 
 
     def fit_transform(self,dat):
+        self.fit(dat)
+        return self.transform(dat)
         ## shape of X is sklearn format (nsampes, nfeats)
-        return np.array([self.scale_fun(x) for x in dat.T]).T
+#         return np.array([self.scale_fun(x) for x in dat.T]).T
         
     def transform2(self,dat,keep_status=False):
         if keep_status:

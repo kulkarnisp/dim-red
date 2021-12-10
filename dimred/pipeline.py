@@ -175,7 +175,7 @@ class DimRedAnalysis:
         errCKscaled = numpy.zeros(array_shape)
 
 
-        for t in range(tmax):
+        for t in range(1, tmax):
             oData, sData, cvPvecs, cvPvals, kuPvecs, kuPvals = \
                     self.analyse_checkpoint(checkpoint_id=t)
 
@@ -188,10 +188,12 @@ class DimRedAnalysis:
                     retain=keep_features,
                     reconstruction_type=reconstruction_type)
 
-            errCV[t] = abs(original_data - rCV)/original_data
-            errCK[t] = abs(original_data - rCK)/original_data
-            errCVscaled[t]=abs(scaled_data-rsCV)/scaled_data
-            errCKscaled[t]=abs(scaled_data-rsCK)/scaled_data
+            # compute relative error for the unscaled values
+            errCV[t] = abs(original_data - rCV)# / original_data 
+            errCK[t] = abs(original_data - rCK)# / original_data
+            # compute abosilute error for the scaled values
+            errCVscaled[t]=abs(scaled_data-rsCV)
+            errCKscaled[t]=abs(scaled_data-rsCK)
 
         return errCV, errCK, errCVscaled, errCKscaled
     

@@ -5,15 +5,19 @@ import matplotlib.pyplot as plt
 #     pass
 
 
-def plot_compare(xold,xnew,titler="Species -X",iserr=False):
+def plot_compare(xold,xnew,titler="Species -X",iserr=False,species=12):
+    xold = xold[:,species]
+    xnew = xnew[:,species]
     plt.plot(xold, label="Origin")
     plt.plot(xnew,label="Reconstr")
     plt.title(titler)
     plt.legend()
     plt.show()
+#     err = np.mean((xold-xnew)**2)    
     if iserr:
         plt.plot((xold-xnew)**2,"g")
         plt.title("Reconstruction Error")
+        
 
 
 def plot_planar(embd_vector):

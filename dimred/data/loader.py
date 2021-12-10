@@ -70,6 +70,22 @@ class LoadOne():
         self.data= np.array(temp_arr)
         return self.data
 
+    def getDomain(self,n_domains=(1,4)):
+        dat = self.getData()
+        nt,nx,nv = dat.shape
+        dt,dx = n_domains
+        vx = int(nx/dx)
+        vt = int(nt/dt)
+        retlist = []
+        for j in range(nt):
+            retlist.extend([dat[j*vt:vt*(j+1),vx*i:vx*(i+1),:] for i in range(dx)])
+        return retlist
+       
+    def getTime(self,time=100,verbose=0):
+        fname = self.flist[time]
+        if verbose:
+            print(f"reading file {fname}...")    
+        return self.readFile(fname)
 
 
 
