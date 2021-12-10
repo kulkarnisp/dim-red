@@ -1,22 +1,26 @@
 import matplotlib.pyplot as plt
 # from 
+import numpy as np
 
 # def plot_compare(xold,xnew,):
 #     pass
 
 
-def plot_compare(xold,xnew,titler="Species -X",iserr=False,species=12):
+def plot_compare(xold,xnew,titler="Species -X",iserr=False,species=2):
     xold = xold[:,species]
     xnew = xnew[:,species]
     plt.plot(xold, label="Origin")
     plt.plot(xnew,label="Reconstr")
-    plt.title(titler)
+    err = np.mean((xold-xnew)**2)
+    print(f"Error is {err:.4f}")
+    plt.title(titler+f"err:{err:.4f}")
     plt.legend()
     plt.show()
-#     err = np.mean((xold-xnew)**2)    
+
     if iserr:
-        plt.plot((xold-xnew)**2,"g")
+        plt.plot(np.abs(xold-xnew),"g")
         plt.title("Reconstruction Error")
+    return err
         
 
 
