@@ -15,7 +15,7 @@ def plot_compare(xold,xnew,titler="Species -X",species=2):
     ax[0].plot(xnew,label="Reconstr")
     err = np.mean((xold-xnew)**2)
     print(f"Average Error is {avg_err:.4f}")
-    ax[0].set_title(titler+f"{species} err:{err:.4f}")
+    ax[0].set_title(titler+f"{species} err:{err:.4e}")
     ax[1].plot(np.abs(xold-xnew),"g")
     ax[1].set_title("Reconstruction Error")
 

@@ -49,6 +49,8 @@ class Kurtosis:
         else:
             self.cm = moment(X)
         u,s,v = np.linalg.svd(self.cm.T,full_matrices=False)
+        self.u = u
+        self.s = s
         self.vectors = u[:,:self.n_retain]
         self.values = s[:self.n_retain]
         
