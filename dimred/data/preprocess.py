@@ -16,8 +16,8 @@ def MeanMaxScalar(x):
 
 
 def AvgMaxScalar(x):
-    x -= x.mean()
     xmax = abs(x).max()
+    x -= x.mean()
     return x/xmax
 
 

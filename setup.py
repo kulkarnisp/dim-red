@@ -18,13 +18,13 @@ setup(
     version=__version__,
     description='Dimensionality for scientific simulations; simulations and time series datasets',
     url='https://github.com/kulkarnisp/dimred/',
-    download_url='https://github.com/kulkarnisp/madana/archive/refs/heads/master.zip',
+    download_url='https://github.com/kulkarnisp/dimred/archive/refs/heads/master.zip',
     license='MIT',
     packages=find_packages(),
     include_package_data=True,
     author='Flame-lab-cds',
     install_requires=install_requires,
-    setup_requires=['numpy>=1.10', 'scipy>=0.17'],
+    setup_requires=['numpy>=1.10', 'scipy>=0.17','scikit-learn'],
     dependency_links=dependency_links,
     author_email='kulkarnisp221@gmail.com'
 )
