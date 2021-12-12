@@ -56,9 +56,9 @@ def plot_spectra(s1,s2,u1,u2):
     ax2.plot(dots,'--og')
     ax2.set_ylabel('dot product')
     ax2.set_ylim(0,1.5)
-
     plt.show()
- 
+
+    
 def img_compare(xold,xnew,titler="Species -X",species=2,labels=["Origin","Reconstruct"],aspect=0):
     avg_err = np.mean((xold-xnew)**2)
     xold = xold[:,:,species]
@@ -68,16 +68,20 @@ def img_compare(xold,xnew,titler="Species -X",species=2,labels=["Origin","Recons
     xlist = [xold,xnew,xerr]
     err = np.mean((xold-xnew)**2)
     labels.append(titler+f"{species} err:{err:.4e}")
+    fig = plt.figure()
 
-    fig,ax = plt.subplots(nrows=3,figsize=(13,6))
+#     fig,ax = plt.subplots(nrows=3,figsize=(13,6))
     cmaps = ['jet','jet','RdBu_r']
     for i,x in enumerate(xlist):
         if aspect==0:
             nx,ny = x.shape
             aspect=ny/nx*0.82
-        ax[i].imshow(x,cmap=cmaps[i])
-        img = ax[i].set_title(labels[i])
-        fig.colorbar(img)
+#         img=ax[i].imshow(x,cmap=cmaps[i])
+        plt.imshow(x,cmap=cmaps=[i])
+#         ax[i].set_title(labels[i])
+        plt.title(labels[i])
+        plt.colorbar()
+#         fig.colorbar(img)
 
     print(f"Average Error is {avg_err:.4f}")
     return fig

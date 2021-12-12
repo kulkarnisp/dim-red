@@ -102,7 +102,7 @@ class Shaper:
         pass
 
     def fit(self,xinput):
-        self.original_shape = xinput.shape
+        self.original_shape = list(xinput.shape[:-1])
         self.nvs = xinput.shape[-1]
 
     def transform(self,xinput):
@@ -114,7 +114,10 @@ class Shaper:
         return self.transform(xinput)
 
     def transform2(self,xout):
-        return xout.reshape(self.original_shape) #        return xinp
+        nvs = xout.shape[-1]
+        testlist = self.original_shape.copy()
+        testlist.append(nvs)
+        return xout.reshape(testlist) #        return xinp
 
 
 ### TODO
