@@ -97,6 +97,26 @@ def scaleData(tdat,scalar=ZeroMeanScalar,threshold=1e-11):
 # scaleStd = lambda dat : np.array([ZeroMeanScalar(x) for x in dat.T]).T
 # scaleAvg = lambda dat : np.array([MeanMaxScalar(x) for x in dat.T]).T
 
+class Shaper:
+    def __init__(self) -> None:
+        pass
+
+    def fit(self,xinput):
+        self.original_shape = xinput.shape
+        self.nvs = xinput.shape[-1]
+
+    def transform(self,xinput):
+        # nvs = xinput.shape[-1]  ## reshapeing to oned array for cantera
+        return xinput.reshape(-1,self.nvs)
+
+    def fit_transform(self,xinput):
+        self.fit(xinput)
+        return self.transform(xinput)
+
+    def transform2(self,xout):
+        return xout.reshape(self.original_shape) #        return xinp
+
+
 ### TODO
 ### ext. scalar class with fun as args
 # class 

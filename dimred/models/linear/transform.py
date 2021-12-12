@@ -51,10 +51,11 @@ class Kurtosis:
         u,s,v = np.linalg.svd(self.cm.T,full_matrices=False)
         self.u = u
         self.s = s
-        self.vectors = u[:,:self.n_retain]
-        self.values = s[:self.n_retain]
+
         
     def transform(self,X):
+        self.vectors = self.u[:,:self.n_retain]
+        self.values = self.s[:self.n_retain]
         return np.dot(X,self.vectors)
 
     def transform2(self,projection):

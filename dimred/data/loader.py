@@ -53,10 +53,12 @@ class LoadOne():
         plt.xlabel("Grid location")
         plt.ylabel(f"Species {self.idvar[spec]}")
 
-    def plotImg(self,spec=2,cmap='viridis'):
+    def plotImg(self,spec=2,cmap='viridis',aspect=0):
         mat = self.data[:,:,spec]
-        nx,ny = mat.shape
-        plt.imshow(mat,aspect=ny/nx*0.78,cmap=cmap)
+        if aspect==0:
+            nx,ny = mat.shape
+            aspect=ny/nx*0.82
+        plt.imshow(mat,aspect=aspect,cmap=cmap)
         plt.xlabel("X-dimension")
         plt.ylabel("t-dimension")
         plt.title(f"Species {self.idvar[spec]}")
@@ -77,7 +79,7 @@ class LoadOne():
         vx = int(nx/dx)
         vt = int(nt/dt)
         retlist = []
-        for j in range(nt):
+        for j in range(dt):
             retlist.extend([dat[j*vt:vt*(j+1),vx*i:vx*(i+1),:] for i in range(dx)])
         return retlist
        
