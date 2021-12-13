@@ -93,8 +93,8 @@ def scaleData(tdat,scalar=ZeroMeanScalar,threshold=1e-11):
 
 
 
-# scaleMax = lambda dat : np.array([MinMaxScalar(x) for x in dat.T]).T
-# scaleStd = lambda dat : np.array([ZeroMeanScalar(x) for x in dat.T]).T
+scaleMax = lambda dat : np.array([MinMaxScalar(x) for x in dat.T]).T
+scaleStd = lambda dat : np.array([ZeroMeanScalar(x) for x in dat.T]).T
 # scaleAvg = lambda dat : np.array([MeanMaxScalar(x) for x in dat.T]).T
 
 class Shaper:

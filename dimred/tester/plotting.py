@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 # from 
 import numpy as np
+import pandas as pd
 
 # def plot_compare(xold,xnew,):
 #     pass
@@ -77,11 +78,24 @@ def img_compare(xold,xnew,titler="Species -X",species=2,labels=["Origin","Recons
             nx,ny = x.shape
             aspect=ny/nx*0.82
 #         img=ax[i].imshow(x,cmap=cmaps[i])
-        plt.imshow(x,cmap=cmaps=[i])
+        plt.imshow(x,cmap=cmaps[i])
 #         ax[i].set_title(labels[i])
         plt.title(labels[i])
         plt.colorbar()
 #         fig.colorbar(img)
-
+        plt.show()
     print(f"Average Error is {avg_err:.4f}")
     return fig
+
+def plot_bars(errcv,errck,horz=True,labels=["Covariance","Kurtosis"]):
+
+    df1 = pd.DataFrame([errcv,errck]).T
+    df1.columns = labels
+    if horz:
+        df1.plot.barh()#(kind='bar')
+    else:
+        df1.plot.bar()
+    plt.title("Species reconstruction error")
+    plt.xlabel("Reconstruction errors in source term $f(x_1,x_2)$")
+    plt.ylabel("Reconstruction method")
+        

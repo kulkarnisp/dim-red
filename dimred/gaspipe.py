@@ -3,6 +3,7 @@ import os,sys
 import cantera as ct
 import matplotlib.pyplot as plt
 
+from dimred.data.loader import LoadOne
 from dimred.data.preprocess import MinMaxScalar,ZeroMeanScalar,MeanMaxScalar,AvgMaxScalar
 # dimred.
 from dimred.data.preprocess import scale_sanity,Scalar
@@ -137,3 +138,25 @@ def retain_analysis(xinput,moment=co_variance,scalar=AvgMaxScalar,retain_max=13,
         xnew = slr.transform2(xpew)
         errs.append(err_criterion(xnew,xinput))
     return np.array(errs)    
+
+
+## resf of the f owl
+
+class mf_interact1:
+    def __init__(self) -> None:
+        self.loader = LoadOne()
+        # pass
+
+    def mf_data(self,time_step=100):
+        return self.loader.getTime(time_step,verbose=-1)[:,:14]
+
+    def mf_retain(xrig,scale='log'):
+        # xrig = loader.getTime(time_step,verbose=-1)[:,:14]
+        verr = retain_analysis(xrig,moment=co_variance).reshape(-1,1)
+        kerr = retain_analysis(xrig,moment=co_kurtosis).reshape(-1,1)
+        fig = plot_compare(verr,kerr,titler="Moment comparison",species=0,labels=["Kurtosis","Variance"])
+        fig.axes[0].set_xlabel("Number of retained vectors")
+        fig.axes[0].set_ylabel("Species reconstruction error")
+        fig.axes[0].set_yscale(scale)
+
+
