@@ -1,17 +1,19 @@
 import numpy as np
 import os,sys
+
+from pandas.io.formats.format import SeriesFormatter
 import cantera as ct
 import matplotlib.pyplot as plt
 
 from dimred.data.loader import LoadOne
-from dimred.data.preprocess import MinMaxScalar,ZeroMeanScalar,MeanMaxScalar,AvgMaxScalar
+from dimred.data.preprocess import MinMaxScalar, Shaper,ZeroMeanScalar,MeanMaxScalar,AvgMaxScalar
 # dimred.
 from dimred.data.preprocess import scale_sanity,Scalar
 
 from dimred.models.linear.transform import Kurtosis
 from dimred.models.linear.transform import co_variance,co_kurtosis
-from dimred.tester.plotting import plot_embedding,plot_compare
-from dimred.tester.metrics import mean_sq_error,mean_abs_error
+from dimred.tester.plotting import plot_embedding,plot_compare,plot_spectra,plot_bars,img_compare
+from dimred.tester.metrics import mean_sq_error,mean_abs_error,abs_err
 
 def reshape_step(xinput):
     nvs = xinput.shape[-1]  ## reshapeing to oned array for cantera
@@ -142,16 +144,21 @@ def retain_analysis(xinput,moment=co_variance,scalar=AvgMaxScalar,retain_max=13,
 
 ## resf of the f owl
 
-class mf_interact1:
+class RunnerTime:
     def __init__(self) -> None:
         self.loader = LoadOne()
         # pass
+        # self.mf_plot(100)
 
-    def mf_data(self,time_step=100):
+    def mf_plot(self,time_step,spec=12):
+        self.loader.plotLine(spec=spec,time=time_step)
+
+    def mf_data(self,time_step=100,plot=False):
         return self.loader.getTime(time_step,verbose=-1)[:,:14]
 
-    def mf_retain(xrig,scale='log'):
+    def mf_retain(self,time_step,scale='log'):
         # xrig = loader.getTime(time_step,verbose=-1)[:,:14]
+        xrig = self.mf_data(time_step)
         verr = retain_analysis(xrig,moment=co_variance).reshape(-1,1)
         kerr = retain_analysis(xrig,moment=co_kurtosis).reshape(-1,1)
         fig = plot_compare(verr,kerr,titler="Moment comparison",species=0,labels=["Kurtosis","Variance"])
@@ -159,4 +166,56 @@ class mf_interact1:
         fig.axes[0].set_ylabel("Species reconstruction error")
         fig.axes[0].set_yscale(scale)
 
+    def mf_embed(self,time_step=100):
+        xrig = self.mf_data(time_step)
+        fig = plt.figure(figsize=(12,5))
+        ax = fig.add_subplot(121, projection='3d')
+        cmv,xold,xnew = transform_step(xrig,moment=co_variance, scalar=AvgMaxScalar,plt_ax=ax,verbose=False)
 
+        ax = fig.add_subplot(122, projection='3d')
+        cmk,kold,knew = transform_step(xrig,moment=co_kurtosis, scalar=AvgMaxScalar,plt_ax=ax,verbose=False)        
+
+    def mf_orient(self,time_step=100):
+        # time_step = 100
+        xrig = self.mf_data(time_step)
+        cmv,xold,xnew = transform_step(xrig,moment=co_variance, scalar=AvgMaxScalar,verbose=-2,plots=False)
+        cmk,kold,knew = transform_step(xrig,moment=co_kurtosis, scalar=AvgMaxScalar,verbose=-2,plots=False)
+        plot_spectra(cmv.s,cmk.s,cmv.u,cmk.u)
+
+    def mf_compare(self,moment,source,specs=0):
+        total = self.total
+        plot_compare(total[moment]['old'][source],total[moment]['new'][source],species=specs)
+
+    def mf_build(self,time_index,n_retain=4):
+        xrig = self.mf_data(time_index)
+        self.total = build_dictionary(xrig,retain=n_retain)
+        # return self.total
+
+    def mf_errors(self,source):
+        moment = "covariance"
+        total = self.total
+        errcv = abs_err(total[moment]['old'][source] ,total[moment]['new'][source])
+        moment = "cokurtosis"
+        errck = abs_err(total[moment]['old'][source] ,total[moment]['new'][source])
+
+        plot_bars(errcv/errcv,errck/errcv,horz=False,indices=self.loader.varid.keys())
+
+
+class RunnerDomain(RunnerTime):
+    def __init__(self, domains = (1,4)) -> None:
+        super().__init__()
+        xregions = [self.loader.getData()]
+        self.loader.plotImg(spec=12)#,aspect=0.9)
+
+        xregions.extend(self.loader.getDomain(domains))
+        self.xregions = xregions
+        self.spr = Shaper()
+    
+    def mf_data(self, time_step=0, plot=False):
+        return self.spr.fit_transform(self.xregions[time_step])
+
+    def mf_images(self,moment,source,specs=0):
+        total = self.total
+        spr = self.spr
+        img_compare(spr.transform2(total[moment]['old'][source]),
+                 spr.transform2(total[moment]['new'][source]),species=specs)

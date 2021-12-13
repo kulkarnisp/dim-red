@@ -62,12 +62,15 @@ def plot_spectra(s1,s2,u1,u2):
     
 def img_compare(xold,xnew,titler="Species -X",species=2,labels=["Origin","Reconstruct"],aspect=0):
     avg_err = np.mean((xold-xnew)**2)
+    print(f"Average Error is {avg_err:.4e}")
     xold = xold[:,:,species]
     xnew = xnew[:,:,species]
     xerr = xold-xnew
 
     xlist = [xold,xnew,xerr]
-    err = np.mean((xold-xnew)**2)
+    err = np.mean(xerr**2)
+    print(f"Species Error is {err:.4e}")
+
     labels.append(titler+f"{species} err:{err:.4e}")
     fig = plt.figure()
 
@@ -84,13 +87,18 @@ def img_compare(xold,xnew,titler="Species -X",species=2,labels=["Origin","Recons
         plt.colorbar()
 #         fig.colorbar(img)
         plt.show()
-    print(f"Average Error is {avg_err:.4f}")
     return fig
 
-def plot_bars(errcv,errck,horz=True,labels=["Covariance","Kurtosis"]):
+def plot_bars(errcv,errck,horz=True,labels=["Covariance","Kurtosis"],indices=None):
 
     df1 = pd.DataFrame([errcv,errck]).T
     df1.columns = labels
+    if indices!= None:
+        n = len(errcv)
+        temp = list(range(n))
+        m = min(len(indices),n)
+        temp[:m] = list(indices)[:m]
+        df1.index = temp
     if horz:
         df1.plot.barh()#(kind='bar')
     else:
