@@ -6,12 +6,14 @@ import cantera as ct
 import matplotlib.pyplot as plt
 
 from dimred.data.loader import LoadOne
-from dimred.data.preprocess import MinMaxScalar, Shaper,ZeroMeanScalar,MeanMaxScalar,AvgMaxScalar
+from dimred.data.preprocess import AvgMaxScalar, MinMaxScalar, Shaper,ZeroMeanScalar,MeanMaxScalar,AvgMaxScalar
 # dimred.
 from dimred.data.preprocess import scale_sanity,Scalar
 
 from dimred.models.linear.transform import Kurtosis
 from dimred.models.linear.transform import co_variance,co_kurtosis
+# from dimred.models.linear.transform import val_kurtosis as co_kurtosis
+from dimred.models.linear.transform import ra_kurtosis as co_kurtosis
 from dimred.tester.plotting import plot_embedding,plot_compare,plot_spectra,plot_bars,img_compare
 from dimred.tester.metrics import mean_sq_error,mean_abs_error,abs_err
 
@@ -21,7 +23,7 @@ def reshape_step(xinput):
     return xinp
 
 
-def transform_step(xinput,retain=4,plots=True,verbose=2,moment=co_kurtosis,scalar=AvgMaxScalar,plt_ax=None):
+def transform_step(xinput,retain=4,plots=True,verbose=2,moment=co_kurtosis,scalar=MeanMaxScalar,plt_ax=None):
     xrig = reshape_step(xinput).copy()    
     ## Reading and scaling data:-->
     xold = xrig.copy()
@@ -53,7 +55,7 @@ def transform_step(xinput,retain=4,plots=True,verbose=2,moment=co_kurtosis,scala
         print("Reconstructed data")
         scale_sanity(xnew)
     if verbose>=-1:
-        print(f"{moment.name} reconstruction error after retaining {retain} vectors is {err:.4f}")
+        print(f"{moment.name} reconstruction error after retaining {retain} vectors is {err:.3e}")
     return clf,xold,xnew
 
 
@@ -84,6 +86,7 @@ def cantera_step(xinput,NVR=14,MFID=12,indices=indices,references=references,gas
 
     prod_rates = []
     react_rates = []
+    heat_rates = []
     for i in range(nx):                                  #iterating over all grid points
     #     print(i)                                            
         sample = xinp[i]*ref_array                 #converting into the SI units
@@ -91,36 +94,32 @@ def cantera_step(xinput,NVR=14,MFID=12,indices=indices,references=references,gas
         gas.TP = sample[MFID:NVR]                             #setting up the temperature and pressure of gas
         prod_rates.append(gas.net_production_rates)      #calculating production/consumption rates
         react_rates.append(gas.net_rates_of_progress)    #calculating reaction rates
-    return np.array(prod_rates),np.array(react_rates)
+        heat_rates.append(gas.heat_release_rate)    #calculating reaction rates
+
+    retval = {'production':np.array(prod_rates),'reaction':np.array(react_rates),
+            'mass':xinput,'hrr':np.array(heat_rates).reshape(-1,1)}
+    return retval
 
 
 
-def build_dictionary(xinput,retain=4):
+def build_dictionary(xinput,retain=4,scalar=MeanMaxScalar):
     xrig = xinput
-    cmv,xold,xnew = transform_step(xrig,retain=retain,moment=co_variance, scalar=AvgMaxScalar,verbose=0,plots=False)
-    cmk,kold,knew = transform_step(xrig,retain=retain,moment=co_kurtosis, scalar=AvgMaxScalar,verbose=0,plots=False)
     total = {}
     # loader.plotLine(spec=12,time=time_step)
-    prod_new,react_new = cantera_step(xnew,verbose=0) 
-    prod_old,react_old = cantera_step(xold,verbose=0)
-
-    kprod_new,kreact_new = cantera_step(knew,verbose=0) 
-    kprod_old,kreact_old = cantera_step(kold,verbose=0)
-
-
-
-    olds={'production':prod_old,'reaction':react_old,'mass':xold}
-    news={'production':prod_new,'reaction':react_new,'mass':xnew}
-
+    cmv,xold,xnew = transform_step(xrig,retain=retain,moment=co_variance, scalar=scalar,verbose=0,plots=False)
+    news = cantera_step(xnew,verbose=0) 
+    olds = cantera_step(xold,verbose=0)
     total['covariance'] = {'old':olds,'new':news}
 
-    olds={'production':kprod_old,'reaction':kreact_old,'mass':kold}
-    news={'production':kprod_new,'reaction':kreact_new,'mass':knew}
+    cmk,xold,xnew = transform_step(xrig,retain=retain,moment=co_kurtosis, scalar=scalar,verbose=0,plots=False)
+    news = cantera_step(xnew,verbose=0) 
+    olds = cantera_step(xold,verbose=0)
     total['cokurtosis'] = {'old':olds,'new':news}
+
     return total
 
 
-def retain_analysis(xinput,moment=co_variance,scalar=AvgMaxScalar,retain_max=13,yscale='linear',err_criterion=mean_sq_error):
+def retain_analysis(xinput,moment=co_variance,scalar=MeanMaxScalar,retain_max=13,yscale='linear',err_criterion=mean_sq_error):
     xrig = reshape_step(xinput).copy()    
     slr = Scalar(scalar)
     slr.fit(xrig)
@@ -147,6 +146,8 @@ def retain_analysis(xinput,moment=co_variance,scalar=AvgMaxScalar,retain_max=13,
 class RunnerTime:
     def __init__(self) -> None:
         self.loader = LoadOne()
+        self.MyScalar = AvgMaxScalar
+        self.IMAX = 201
         # pass
         # self.mf_plot(100)
 
@@ -161,7 +162,7 @@ class RunnerTime:
         xrig = self.mf_data(time_step)
         verr = retain_analysis(xrig,moment=co_variance).reshape(-1,1)
         kerr = retain_analysis(xrig,moment=co_kurtosis).reshape(-1,1)
-        fig = plot_compare(verr,kerr,titler="Moment comparison",species=0,labels=["Kurtosis","Variance"])
+        fig = plot_compare(verr,kerr,titler="Moment comparison",species=0,labels=["Variance","Kurtosis"])
         fig.axes[0].set_xlabel("Number of retained vectors")
         fig.axes[0].set_ylabel("Species reconstruction error")
         fig.axes[0].set_yscale(scale)
@@ -170,17 +171,27 @@ class RunnerTime:
         xrig = self.mf_data(time_step)
         fig = plt.figure(figsize=(12,5))
         ax = fig.add_subplot(121, projection='3d')
-        cmv,xold,xnew = transform_step(xrig,moment=co_variance, scalar=AvgMaxScalar,plt_ax=ax,verbose=False)
-
+        cmv,xold,xnew = transform_step(xrig,moment=co_variance, scalar=self.MyScalar,plt_ax=ax,verbose=False)
+        self.cmv = cmv
         ax = fig.add_subplot(122, projection='3d')
-        cmk,kold,knew = transform_step(xrig,moment=co_kurtosis, scalar=AvgMaxScalar,plt_ax=ax,verbose=False)        
+        cmk,kold,knew = transform_step(xrig,moment=co_kurtosis, scalar=self.MyScalar,plt_ax=ax,verbose=False)        
+        self.cmk = cmk
 
     def mf_orient(self,time_step=100):
         # time_step = 100
         xrig = self.mf_data(time_step)
-        cmv,xold,xnew = transform_step(xrig,moment=co_variance, scalar=AvgMaxScalar,verbose=-2,plots=False)
-        cmk,kold,knew = transform_step(xrig,moment=co_kurtosis, scalar=AvgMaxScalar,verbose=-2,plots=False)
+        cmv,xold,xnew = transform_step(xrig,moment=co_variance, scalar=self.MyScalar,verbose=-2,plots=False)
+        cmk,kold,knew = transform_step(xrig,moment=co_kurtosis, scalar=self.MyScalar,verbose=-2,plots=False)
         plot_spectra(cmv.s,cmk.s,cmv.u,cmk.u)
+    
+    def mf_heatmap(self):
+        slr = Scalar()
+        outmat = []
+        for i in range(self.IMAX):
+            xrig = slr.fit_transform(self.mf_data(i))
+            u1,s1,v = np.linalg.svd(co_variance(xrig).T)
+            u2,s2,v = np.linalg.svd(co_kurtosis(xrig).T,full_matrices=False)
+            outmat.append(u1@u2)
 
     def mf_compare(self,moment,source,specs=0):
         total = self.total
@@ -199,7 +210,34 @@ class RunnerTime:
         errck = abs_err(total[moment]['old'][source] ,total[moment]['new'][source])
 
         plot_bars(errcv/errcv,errck/errcv,horz=False,indices=self.loader.varid.keys())
+    
+    def mf_alldata(self):
+        total = self.total
+        moments = total.keys()
+        sources = total['covariance']['old'].keys()
+        err_dict = {}
 
+        for m in moments:
+            err_dict[m] = {k:[] for k in sources}
+        for i in range(self.IMAX):
+            self.mf_build(i,n_retain=4)
+            total = self.total
+            for m in moments:
+                for k in sources:
+                    errik = abs_err(total[m]['old'][k] ,total[m]['new'][k])
+                    err_dict[m][k].append(errik)
+        for m in moments:
+            for k in sources:
+                err_dict[m][k] = np.array(err_dict[m][k])
+        self.err_dict = err_dict
+        # return err_dict
+
+    def mf_allerror(self,source,spec=0):
+        ed = self.err_dict
+        errcv = ed['covariance'][source]
+        errck = ed['cokurtosis'][source]
+        # plot_bars(errcv,errck,horz=False)
+        plot_compare(errcv,errck,labels=["Covariance","Cokurtosis"],species=spec)
 
 class RunnerDomain(RunnerTime):
     def __init__(self, domains = (1,4)) -> None:
@@ -209,6 +247,7 @@ class RunnerDomain(RunnerTime):
 
         xregions.extend(self.loader.getDomain(domains))
         self.xregions = xregions
+        self.IMAX = len(xregions)
         self.spr = Shaper()
     
     def mf_data(self, time_step=0, plot=False):

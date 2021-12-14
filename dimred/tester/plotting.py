@@ -8,16 +8,16 @@ import pandas as pd
 
 
 def plot_compare(xold,xnew,titler="Species -X",species=2,labels=["Origin","Reconstruct"]):
-    avg_err = np.mean((xold-xnew)**2)
+    avg_err = np.mean((xold-xnew)**2)**0.5
     xold = xold[:,species]
     xnew = xnew[:,species]
     fig,ax = plt.subplots(ncols=2,figsize=(13,6))
-    ax[0].plot(xold,label=labels[0])
-    ax[0].plot(xnew,label=labels[1])
-    err = np.mean((xold-xnew)**2)
+    ax[0].plot(xold,'b',label=labels[0])
+    ax[0].plot(xnew,'r',label=labels[1])
+    err = np.mean((xold-xnew)**2)**0.5
     print(f"Average Error is {avg_err:.4f}")
     ax[0].set_title(titler+f"{species} err:{err:.4e}")
-    ax[1].plot(np.abs(xold-xnew),"g")
+    ax[1].plot(xold-xnew,"g")
     ax[1].set_title(f"Error Comparison")
 
     ax[0].legend()
@@ -94,15 +94,14 @@ def plot_bars(errcv,errck,horz=True,labels=["Covariance","Kurtosis"],indices=Non
     df1 = pd.DataFrame([errcv,errck]).T
     df1.columns = labels
     if indices!= None:
-        n = len(errcv)
-        temp = list(range(n))
-        m = min(len(indices),n)
+        temp = list(df1.index)
+        m = min(len(indices),len(temp))
         temp[:m] = list(indices)[:m]
         df1.index = temp
     if horz:
         df1.plot.barh()#(kind='bar')
     else:
-        df1.plot.bar()
+        df1.plot.bar(color=['b','r'])
     plt.title("Species reconstruction error")
     plt.xlabel("Reconstruction errors in source term $f(x_1,x_2)$")
     plt.ylabel("Reconstruction method")
