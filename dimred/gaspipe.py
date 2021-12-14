@@ -11,9 +11,9 @@ from dimred.data.preprocess import AvgMaxScalar, MinMaxScalar, Shaper,ZeroMeanSc
 from dimred.data.preprocess import scale_sanity,Scalar
 
 from dimred.models.linear.transform import Kurtosis
-from dimred.models.linear.transform import co_variance,co_kurtosis
-# from dimred.models.linear.transform import val_kurtosis as co_kurtosis
-from dimred.models.linear.transform import ra_kurtosis as co_kurtosis
+from dimred.models.linear.transform import co_variance #,co_kurtosis
+from dimred.models.linear.transform import val_kurtosis as co_kurtosis
+# from dimred.models.linear.transform import ra_kurtosis as co_kurtosis
 from dimred.tester.plotting import plot_embedding,plot_compare,plot_spectra,plot_bars,img_compare
 from dimred.tester.metrics import mean_sq_error,mean_abs_error,abs_err
 
@@ -146,7 +146,7 @@ def retain_analysis(xinput,moment=co_variance,scalar=MeanMaxScalar,retain_max=13
 class RunnerTime:
     def __init__(self) -> None:
         self.loader = LoadOne()
-        self.MyScalar = AvgMaxScalar
+        self.MyScalar = MinMaxScalar
         self.IMAX = 201
         # pass
         # self.mf_plot(100)
