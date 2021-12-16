@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import pathlib
 import imp
 
+import pandas as pd
 
 # import plotly.express as px
 
@@ -87,7 +88,10 @@ class LoadOne():
         fname = self.flist[time]
         if verbose:
             print(f"reading file {fname}...")    
-        return self.readFile(fname)
+        dat = self.readFile(fname)
+        # df = pd.DataFrame(dat)
+        # df.columns = self.idvar.values()
+        return dat #df
 
 
 

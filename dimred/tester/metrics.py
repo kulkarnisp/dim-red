@@ -1,6 +1,5 @@
 import imp
 import numpy as np
-from ..data.preprocess import scaleMax
 
 def accuracy_score(x,y):
     return sum(np.abs(x-y))

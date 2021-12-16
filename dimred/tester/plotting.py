@@ -46,6 +46,7 @@ def plot_embedding(embd_vector,color_spec=None,cmap="viridis",titler="Moment spa
     ax.set_xlabel(f"$eta 1$")
     ax.set_ylabel(f"$eta_2$")
     ax.set_title(titler)
+    # return figss
 
 def plot_spectra(s1,s2,u1,u2):
     fig,(ax1,ax2) = plt.subplots(1,2,figsize=(10,4))
@@ -57,7 +58,7 @@ def plot_spectra(s1,s2,u1,u2):
     ax2.plot(dots,'--og')
     ax2.set_ylabel('dot product')
     ax2.set_ylim(0,1.5)
-    plt.show()
+    # plt.show()
 
     
 def img_compare(xold,xnew,titler="Species -X",species=2,labels=["Origin","Reconstruct"],aspect=0):

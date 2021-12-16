@@ -3,36 +3,50 @@ import numpy as np
 import functools as fc
 from functools import partial
 
-def MinMaxScalar(x):
-    ## x is a one dimensional array 
-    x  -= x.min()
-    xmax = x.max()
-    return x/xmax
+# def MinMaxScalar(x):
+#     ## x is a one dimensional array 
+#     x  -= x.min()
+#     xmax = x.max()
+#     return x/xmax
+# def ZeroMeanScalar(x):
+#     ## x is a one dimensional array 
+#     x -= x.mean()
+#     vx = x.var()
+#     if vx == 0:
+#         print("Divide by zero Error")
+#     return x/vx
 
-def MeanMaxScalar(x):
+def MinMaxScalar():
     ## x is a feature set:
-    x -= x.mean()
-    return x/x.max()
+    # x -= x.mean()
+    # return x/x.max()
+    numer = lambda x: np.min(x,axis=0)
+    denom = lambda x: np.max(x,axis=0) - np.min(x,axis=0)
+    return numer,denom
 
 
-def AvgMaxScalar(x):
-    xmax = abs(x).max()
-    x -= x.mean()
-    return x/xmax
+def StandardScalar():
+    numer = lambda x: np.mean(x,axis=0)
+    denom = lambda x: np.var(x,axis=0) 
+    return numer,denom
 
 
-def ZeroMeanScalar(x):
-    ## x is a one dimensional array 
-    x -= x.mean()
-    vx = x.var()
-    if vx == 0:
-        print("Divide by zero Error")
-    return x/vx
+def AvgMaxScalar():
+    numer = lambda x: np.mean(x,axis=0)
+    denom = lambda x: np.max(x,axis=0) - np.mean(x,axis=0)
+    return numer,denom
 
-def NoScalar(x):
-    return x/x.max()
+def MaxAvgScalar():
+    numer = lambda x: np.mean(x,axis=0)
+    denom = lambda x: np.max(x,axis=0)
+    return numer,denom
 
-def forward(x,substract,divide):
+def NoScalar():
+    numer = lambda x: np.zeros(x.shape[1])
+    denom = lambda x: np.ones(x.shape[1])
+    return numer,denom
+
+def _forward(x,substract,divide):
     x -= substract
     # if any(divide) == 0:
     #     print("Divide by zero Error")
@@ -42,7 +56,7 @@ def forward(x,substract,divide):
     x[:,zids] /= divide[zids]  ## amaze babe
     return x
 
-def reverse(x,substract,divide):
+def _reverse(x,substract,divide):
     x = x*divide
     x += substract
     return x
@@ -50,19 +64,20 @@ def reverse(x,substract,divide):
 scale_sanity = lambda x: print(f"Maxima is {x.max():.2f} \n Minima is {x.min():.2f} \n {x.shape}")
 
 class Scalar:
-    def __init__(self,scale_fun=MinMaxScalar) -> None:
+    def __init__(self,scale_gen=MinMaxScalar()) -> None:
+        ## scale gen is a scale funciton generator
         ## shape of input data is sklearn format (nsampes, nfeats)
-        
-        self.scale_fun = scale_fun
+        self.numer,self.denom = scale_gen
+#         self.denom
         pass
     
     def fit(self,dat):
-        self.subs = np.min(dat,axis=0)
-        self.divs = np.max(dat,axis=0)
-        self.divs -= self.subs
+        self.subs = self.numer(dat)
+        self.divs = self.denom(dat)
+#         self.divs -= self.subs
 
     def transform(self,dat):
-        return forward(dat,self.subs,self.divs)
+        return _forward(dat,self.subs,self.divs)
 
 
     def fit_transform(self,dat):
@@ -73,28 +88,33 @@ class Scalar:
         
     def transform2(self,dat,keep_status=False):
         if keep_status:
-            subs = dat.min(axis=0)
-            divs = subs - dat.max(axis=1)
-
-        return reverse(dat,self.subs,self.divs).copy()
-
-def scaleData(tdat,scalar=ZeroMeanScalar,threshold=1e-11):
-    ## input data usually has to be transped
-    ## so outermost index corresp to feat
-    adat = []
-    ignor = []
-    for i,a in enumerate(tdat.T):
-        if featIgnore(a,eta=threshold):
-            ignor.append(i)  ## ignore is decided using athresh
+            subs = self.numer(dat)
+            divs = self.denom(dat)
         else:
-            adat.append(scalar(a))
-    print("Ignored Features are",ignor)
-    return np.array(adat).T
+            subs = self.subs
+            divs = self.divs
+        return _reverse(dat,subs,divs).copy()
+        
+# def scaleData(tdat,scalar=ZeroMeanScalar,threshold=1e-11):
+#     ## input data usually has to be transped
+#     ## so outermost index corresp to feat
+#     adat = []
+#     ignor = []
+#     for i,a in enumerate(tdat.T):
+#         if featIgnore(a,eta=threshold):
+#             ignor.append(i)  ## ignore is decided using athresh
+#         else:
+#             adat.append(scalar(a))
+#     print("Ignored Features are",ignor)
+#     return np.array(adat).T
 
 
+def scaleData(dat,scalar=MinMaxScalar):
+    up,down = scalar()
+    return _forward(dat,up,down)
 
-scaleMax = lambda dat : np.array([MinMaxScalar(x) for x in dat.T]).T
-scaleStd = lambda dat : np.array([ZeroMeanScalar(x) for x in dat.T]).T
+# scaleMax = lambda dat : np.array([MinMaxScalar(x) for x in dat.T]).T
+# scaleStd = lambda dat : np.array([ZeroMeanScalar(x) for x in dat.T]).T
 # scaleAvg = lambda dat : np.array([MeanMaxScalar(x) for x in dat.T]).T
 
 class Shaper:
