@@ -48,16 +48,20 @@ def plot_embedding(embd_vector,color_spec=None,cmap="viridis",titler="Moment spa
     ax.set_title(titler)
     # return figss
 
-def plot_spectra(s1,s2,u1,u2):
+def plot_spectra(s1,s2,u1,u2,temp=0,scale='log',ylabels=['singular values','dot product']):
     fig,(ax1,ax2) = plt.subplots(1,2,figsize=(10,4))
-    ax1.plot(np.log(s1),'--ob',label='covariance')
-    ax1.plot(np.log(s2),'--or',label='cokurtosis')
-    ax1.set_ylabel('singular value')
+    ax1.plot(s1,'--ob',label='covariance')
+    ax1.plot(s2,'--or',label='cokurtosis')
+    ax1.set_yscale(scale)
+    ax1.set_ylabel(ylabels[0])
     ax1.legend()
-    dots = [abs(v1@v2) for v1,v2 in zip(u1,u2)]
+    if not(type(temp) is int):
+        dots = temp
+    else:
+        dots = [abs(v1@v2) for v1,v2 in zip(u1,u2)]
+        ax2.set_ylim(0,1.2)
     ax2.plot(dots,'--og')
-    ax2.set_ylabel('dot product')
-    ax2.set_ylim(0,1.5)
+    ax2.set_ylabel(ylabels[1])
     # plt.show()
 
     

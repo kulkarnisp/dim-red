@@ -130,7 +130,7 @@ def retain_analysis(xinput,moment=co_variance,scalar=AvgMaxScalar(),retain_max=1
     clf = Kurtosis(n_retain=3)
     clf.fit(xscaled,moment=moment)  ## or co_variance; user inputx
     errs = []
-    for i in range(1,retain_max):
+    for i in range(0,retain_max):
         clf.n_retain = i
         xred = clf.transform(xscaled)
         
@@ -144,7 +144,7 @@ def retain_analysis(xinput,moment=co_variance,scalar=AvgMaxScalar(),retain_max=1
 
 ## resf of the f owl
 
-class RunnerTime:
+class Elbow:
     def __init__(self) -> None:
         self.loader = LoadOne()
         self.MyScalar = AvgMaxScalar()
@@ -161,12 +161,13 @@ class RunnerTime:
     def mf_retain(self,time_step,scale='log'):
         # xrig = loader.getTime(time_step,verbose=-1)[:,:14]
         xrig = self.mf_data(time_step)
-        verr = retain_analysis(xrig,moment=co_variance).reshape(-1,1)
-        kerr = retain_analysis(xrig,moment=co_kurtosis).reshape(-1,1)
-        fig = plot_compare(verr,kerr,titler="Moment comparison",species=0,labels=["Variance","Kurtosis"])
-        fig.axes[0].set_xlabel("Number of retained vectors")
-        fig.axes[0].set_ylabel("Species reconstruction error")
-        fig.axes[0].set_yscale(scale)
+        verr = retain_analysis(xrig,moment=co_variance,scalar=self.MyScalar)
+        kerr = retain_analysis(xrig,moment=co_kurtosis,scalar=self.MyScalar)
+        fig = plot_spectra(verr,kerr,0,0,(verr-kerr),ylabels=["Reconstruction error","Difference in error"],scale=scale)
+        # fig = plot_compare(verr,kerr,titler="Moment comparison",species=0,labels=["Variance","Kurtosis"])
+        # fig.axes[0].set_xlabel("Number of retained vectors")
+        # fig.axes[0].set_ylabel("Species reconstruction error")
+        # fig.axes[0].set_yscale(scale)
 
     def mf_embed(self,time_step=100):
         xrig = self.mf_data(time_step)
@@ -200,7 +201,7 @@ class RunnerTime:
 
     def mf_build(self,time_index,n_retain=4):
         xrig = self.mf_data(time_index)
-        self.total = build_dictionary(xrig,retain=n_retain)
+        self.total = build_dictionary(xrig,retain=n_retain,scalar=self.MyScalar)
         # return self.total
 
     def mf_errors(self,source):
@@ -242,7 +243,7 @@ class RunnerTime:
         # plot_bars(errcv,errck,horz=False)
         plot_compare(errcv,errck,labels=["Covariance","Cokurtosis"],species=spec)
 
-class RunnerDomain(RunnerTime):
+class RunnerDomain(Elbow):
     def __init__(self, domains = (1,4)) -> None:
         super().__init__()
         xregions = [self.loader.getData()]

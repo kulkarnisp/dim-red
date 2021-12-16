@@ -87,7 +87,7 @@ class LoadOne():
     def getTime(self,time=100,verbose=0):
         fname = self.flist[time]
         if verbose:
-            print(f"reading file {fname}...")    
+            print(f"reading {time}th file {fname}...")    
         dat = self.readFile(fname)
         # df = pd.DataFrame(dat)
         # df.columns = self.idvar.values()
