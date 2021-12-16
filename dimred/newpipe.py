@@ -12,11 +12,14 @@ from dimred.data.preprocess import AvgMaxScalar, MinMaxScalar, Shaper, MaxAvgSca
 from dimred.data.preprocess import scale_sanity,Scalar
 
 from dimred.models.linear.transform import Kurtosis
-from dimred.models.linear.transform import co_variance #,co_kurtosis
-from dimred.models.linear.transform import val_kurtosis as co_kurtosis
-# from dimred.models.linear.transform import ra_kurtosis as co_kurtosis
+from dimred.models.linear.transform import co_variance,co_kurtosis #,outer co kurtosis
+from dimred.models.linear.transform import val_kurtosis,ra_kurtosis
 from dimred.tester.plotting import plot_embedding,plot_compare,plot_spectra,plot_bars,img_compare
 from dimred.tester.metrics import mean_sq_error,mean_abs_error,abs_err
+
+wh_kurtosis = val_kurtosis
+## define which kurtosis to use for calculation
+
 
 def reshape_step(xinput):
     nvs = xinput.shape[-1]  ## reshapeing to oned array for cantera
@@ -24,7 +27,7 @@ def reshape_step(xinput):
     return xinp
 
 
-def transform_step(xinput,retain=4,plots=True,verbose=2,moment=co_kurtosis,scalar=AvgMaxScalar(),plt_ax=None):
+def transform_step(xinput,retain=4,plots=True,verbose=2,moment=wh_kurtosis,scalar=AvgMaxScalar(),plt_ax=None):
     xrig = reshape_step(xinput).copy()    
     ## Reading and scaling data:-->
     xold = xrig.copy()
@@ -112,7 +115,7 @@ def build_dictionary(xinput,retain=4,scalar=AvgMaxScalar()):
     olds = cantera_step(xold,verbose=0)
     total['covariance'] = {'old':olds,'new':news}
 
-    cmk,xold,xnew = transform_step(xrig,retain=retain,moment=co_kurtosis, scalar=scalar,verbose=0,plots=False)
+    cmk,xold,xnew = transform_step(xrig,retain=retain,moment=wh_kurtosis, scalar=scalar,verbose=0,plots=False)
     news = cantera_step(xnew,verbose=0) 
     olds = cantera_step(xold,verbose=0)
     total['cokurtosis'] = {'old':olds,'new':news}
@@ -162,7 +165,7 @@ class Elbow:
         # xrig = loader.getTime(time_step,verbose=-1)[:,:14]
         xrig = self.mf_data(time_step)
         verr = retain_analysis(xrig,moment=co_variance,scalar=self.MyScalar)
-        kerr = retain_analysis(xrig,moment=co_kurtosis,scalar=self.MyScalar)
+        kerr = retain_analysis(xrig,moment=wh_kurtosis,scalar=self.MyScalar)
         fig = plot_spectra(verr,kerr,0,0,(verr-kerr),ylabels=["Reconstruction error","Difference in error"],scale=scale)
         # fig = plot_compare(verr,kerr,titler="Moment comparison",species=0,labels=["Variance","Kurtosis"])
         # fig.axes[0].set_xlabel("Number of retained vectors")
@@ -176,14 +179,14 @@ class Elbow:
         cmv,xold,xnew = transform_step(xrig,moment=co_variance, scalar=self.MyScalar,plt_ax=ax,verbose=False)
         self.cmv = cmv
         ax = fig.add_subplot(122, projection='3d')
-        cmk,kold,knew = transform_step(xrig,moment=co_kurtosis, scalar=self.MyScalar,plt_ax=ax,verbose=False)        
+        cmk,kold,knew = transform_step(xrig,moment=wh_kurtosis, scalar=self.MyScalar,plt_ax=ax,verbose=False)        
         self.cmk = cmk
 
     def mf_orient(self,time_step=100):
         # time_step = 100
         xrig = self.mf_data(time_step)
         cmv,xold,xnew = transform_step(xrig,moment=co_variance, scalar=self.MyScalar,verbose=-2,plots=False)
-        cmk,kold,knew = transform_step(xrig,moment=co_kurtosis, scalar=self.MyScalar,verbose=-2,plots=False)
+        cmk,kold,knew = transform_step(xrig,moment=wh_kurtosis, scalar=self.MyScalar,verbose=-2,plots=False)
         plot_spectra(cmv.s,cmk.s,cmv.u,cmk.u)
     
     def mf_heatmap(self):
@@ -192,7 +195,7 @@ class Elbow:
         for i in range(self.IMAX):
             xrig = slr.fit_transform(self.mf_data(i))
             u1,s1,v = np.linalg.svd(co_variance(xrig).T)
-            u2,s2,v = np.linalg.svd(co_kurtosis(xrig).T,full_matrices=False)
+            u2,s2,v = np.linalg.svd(wh_kurtosis(xrig).T,full_matrices=False)
             outmat.append(u1@u2)
 
     def mf_compare(self,moment,source,specs=0):
