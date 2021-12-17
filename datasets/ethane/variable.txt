@@ -1,0 +1,8 @@
+specs = 'H2, O2, O, OH, H2O, H, HO2, H2O2, CO, CO2, HCO, N2, T, P, vx, vy, vz'
+nx = 1024
+ny = 1
+nv = 17
+badoffset = 0
+babyoil = None
+turner = True
+fnameoffset = 13

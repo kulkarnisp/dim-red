@@ -23,23 +23,26 @@ def MinMaxScalar():
     numer = lambda x: np.min(x,axis=0)
     denom = lambda x: np.max(x,axis=0) - np.min(x,axis=0)
     return numer,denom
-
+MinMaxScalar.name = "MinMaxScalar"
 
 def StandardScalar():
     numer = lambda x: np.mean(x,axis=0)
     denom = lambda x: np.var(x,axis=0) 
     return numer,denom
-
+StandardScalar.name ="StandardScalar"
 
 def AvgMaxScalar():
     numer = lambda x: np.mean(x,axis=0)
     denom = lambda x: np.max(x,axis=0) - np.mean(x,axis=0)
     return numer,denom
+AvgMaxScalar.name = "AvgMaxScalar"
+
 
 def MaxAvgScalar():
     numer = lambda x: np.mean(x,axis=0)
     denom = lambda x: np.max(x,axis=0)
     return numer,denom
+MaxAvgScalar.name = "MaxAvgScalr"
 
 def NoScalar():
     numer = lambda x: np.zeros(x.shape[1])
@@ -64,13 +67,13 @@ def _reverse(x,substract,divide):
 scale_sanity = lambda x: print(f"Maxima is {x.max():.2f} \n Minima is {x.min():.2f} \n {x.shape}")
 
 class Scalar:
-    def __init__(self,scale_gen=MinMaxScalar()) -> None:
+    def __init__(self,scale_gen=MinMaxScalar) -> None:
         ## scale gen is a scale funciton generator
         ## shape of input data is sklearn format (nsampes, nfeats)
-        self.numer,self.denom = scale_gen
+        self.numer,self.denom = scale_gen()
 #         self.denom
-        pass
-    
+        self.namer = scale_gen.name    
+
     def fit(self,dat):
         self.subs = self.numer(dat)
         self.divs = self.denom(dat)

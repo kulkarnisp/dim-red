@@ -1,12 +1,13 @@
 # utilities used in kurtosis analysis
 import numpy as np
 import functools as fc
-
+import os
+from tqdm import tqdm
 
 def co_variance(X,bias=0):
     nx,i = X.shape ## X is input data matrix 
     ans = np.zeros((i,i),dtype=float)
-    for a in X:
+    for a in tqdm(X):
         ans += np.outer(a,a)
     return ans/(nx-bias)
 co_variance.name = "co_variance" ## Abuse of function notations
@@ -19,7 +20,7 @@ def ex_variance(cm):
 def ra_kurtosis(X,bias=0):
     nx,i = X.shape
     ans = np.zeros((i**3,i))
-    for a in X:
+    for a in tqdm(X):
         ans += np.outer(np.outer(np.outer(a,a),a),a)
     return ans.T/(nx-bias)
 ra_kurtosis.name="Raw_kurtosis"
@@ -65,20 +66,35 @@ val_kurtosis.name="val kurtosis"
 
 
 class Kurtosis:
-    def __init__(self,n_retain=4,mom_path=None) -> None:
+    def __init__(self,moment=co_variance,n_retain=4,mom_path=None) -> None:
         self.n_retain = n_retain
         self.mom_path = mom_path
+        self.moment = moment
+        self.namer = moment.name
         # pass
 
-    def recallMoments(self):
+    def _recallMoments(self):
         ## todo add sanity checks, file exists ! is valid?
-        self.cm = np.load(self.mom_path)
-
-    def fit(self, X, moment=co_variance):
-        if self.mom_path!=None:
-            self.recallMoments()
+        if os.path.isfile(self.mom_path):
+            self.cm = np.load(self.mom_path)
         else:
-            self.cm = moment(X)
+            print(f"Moment file not found, calculating {self.namer}")
+            self._calcMoment()
+            print(f"saving {self.namer} at {self.mom_path}")
+            np.save(self.mom_path,self.cm)
+
+
+    def _calcMoment(self):
+        self.cm = self.moment(self.x)
+
+
+    def fit(self, X):
+        self.x = X
+        if self.mom_path!=None:
+            self._recallMoments()
+        else:
+            self._calcMoment()
+        # self.cm = self.moment(X)
         u,s,v = np.linalg.svd(self.cm,full_matrices=False)
         self.u = u.T
         self.s = s

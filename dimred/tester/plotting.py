@@ -103,10 +103,12 @@ def plot_bars(errcv,errck,horz=True,labels=["Covariance","Kurtosis"],indices=Non
         m = min(len(indices),len(temp))
         temp[:m] = list(indices)[:m]
         df1.index = temp
+    sizes = [(14,7),(9,10)]
+    fig,ax = plt.subplots(figsize=sizes[horz])
     if horz:
-        df1.plot.barh()#(kind='bar')
+        df1.plot.barh(color=['b','r'],ax=ax)#(kind='bar')
     else:
-        df1.plot.bar(color=['b','r'])
+        df1.plot.bar(color=['b','r'],ax=ax)
     plt.title("Species reconstruction error")
     plt.xlabel("Reconstruction errors in source term $f(x_1,x_2)$")
     plt.ylabel("Reconstruction method")

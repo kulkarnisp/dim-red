@@ -4,22 +4,29 @@ import os,sys
 import matplotlib.pyplot as plt
 import pathlib
 import imp
+from numpy.lib.nanfunctions import _nanmedian_small
 
 import pandas as pd
 
 # import plotly.express as px
 
+# ipath__ = pathlib.Path(__file__) #.parent.resolve()
+# ipath__= os.path.normpath(ipath__).split(os.path.sep)
+# datapath__ = os.path.join(*ipath__[:-3],"datasets/")
+
+datapath__ = os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..','..', 'datasets'))
 
 # from utils import normalise, featurise
 
 class LoadOne():
-    def __init__(self,data_path="../datasets/methane/") -> None:
+    def __init__(self,data_name="methane/") -> None:
+        data_path = os.path.join(datapath__,data_name)
         self.data_path = data_path
         self.loadFiles()
 
     def loadFiles(self):
         flist = [f for f in os.listdir(self.data_path) if f.endswith(".mpi")]
-        self.info = imp.load_source('variables',self.data_path + 'variables.txt')
+        self.info = imp.load_source('variables',os.path.join(self.data_path ,'variable.txt'))
         idx = int(self.info.fnameoffset)
         self.flist = sorted(flist,key=lambda f: float(f[idx:idx+10]))
        
@@ -39,7 +46,7 @@ class LoadOne():
     def readFile(self,filer=None):
         if filer==None:
             filer = self.filer
-        a = np.fromfile(self.data_path+ filer,dtype="float64")
+        a = np.fromfile(os.path.join(self.data_path,filer),dtype="float64")
         dat = a.reshape((self.info.nx,self.info.ny,self.info.nv),order="F").squeeze()
         return dat
 
@@ -99,15 +106,10 @@ class LoadOne():
 
 
 class LoadMPI():
-    def __init__(self,fpath=0):
+    def __init__(self,data='hcci'):
         self.inipath = "/home/shubham/strial/Combust/hcci/data/"
-        if fpath==0:
-            self.fpath = self.inipath
-            self.loadFile("hcci")
-        else:
-            self.fpath = fpath
-            self.fpath = self.fpath.replace("hcci","isml")
-        
+        self.fpath = self.inipath.replace("hcci",data)
+        self.loadFile(data)
         
     def loadFile(self, val="hcci"):
         flist = [f for f in os.listdir(self.fpath) if f.endswith(".mpi")]
@@ -166,6 +168,9 @@ class LoadMPI():
         dat = a.reshape((self.nx,self.ny,self.nv),order="F") 
         return dat 
     
+    def getTime(self,time):
+        return self.getDat(time)
+
     def getHrr(self):
         n = self.file.find('E')
         root = self.file[n-6:n+4]
@@ -174,9 +179,11 @@ class LoadMPI():
         dat = a.reshape((self.nx,self.ny,1), order="F") 
         return dat      
     
-    def getMat(self,species = 2):
+    def getMat(self,species = None):
+        if species is None:
+            species = self.i
 #         i = self.variables[t]
-        self.filer.seek(self.i*8*self.nx*self.ny+self.badOffset)
+        self.filer.seek(species*8*self.nx*self.ny+self.badOffset)
         a = np.fromfile(self.filer,
                         count=self.nx*self.ny,dtype="float64")
         T = a.reshape(self.nx,self.ny,order="F")        
@@ -187,6 +194,16 @@ class LoadMPI():
         y = self.getHrr()
         x = self. getDat(j)
         return x,y
+    
+    def plotImage(self,time=10,species=0):
+        self.selTime(time)
+        self.selSpec(species)
+        T = self.getMat(self.i)
+        # plt.figure(figsize=(6,6))
+        fig = plt.imshow(T,cmap = "jet",aspect=1)
+        titler = self.idvar[self.i] + f" at T{self.filer}"
+        plt.title(self.file)
+        plt.colorbar()
     
     def stPlot(self,saver="temp.png",titler=None,species=0):
         T = self.getMat(self.i)
@@ -213,7 +230,15 @@ class LoadMPI():
         return fig
 
     
+class LoadNumpy:
+    def __init__(self,data_name,file_name) -> None:
+        data_path = os.path.join(datapath__,data_name)
+        with open(os.path.join(data_path,'variable.txt'),"r") as f:
+            variables = f.read()
 
-class LoadOned(LoadMPI):
-    def __init__(self, fpath=0):
-        super().__init__(fpath=fpath)
+        self.xvar = variables.split(" ")
+        self.x = np.load(os.path.join(data_path,file_name+".npy"))
+        self.xname = file_name
+        self.xpath = data_path
+        self.varid = {v:i for i,v in enumerate(self.xvar)}
+

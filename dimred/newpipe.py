@@ -1,13 +1,15 @@
+import imp
 import numpy as np
 import os,sys
 import pickle
 
 from pandas.io.formats.format import SeriesFormatter
 import cantera as ct
+import matplotlib.pyplot as pltss
 import matplotlib.pyplot as plt
 
-from dimred.data.loader import LoadOne
-from dimred.data.preprocess import AvgMaxScalar, MinMaxScalar, Shaper, MaxAvgScalar
+from dimred.data.loader import LoadMPI, LoadOne
+from dimred.data.preprocess import AvgMaxScalar,  MinMaxScalar, Shaper, MaxAvgScalar
 # dimred.
 from dimred.data.preprocess import scale_sanity,Scalar
 
@@ -27,26 +29,33 @@ def reshape_step(xinput):
     return xinp
 
 
-def transform_step(xinput,retain=4,plots=True,verbose=2,moment=wh_kurtosis,scalar=AvgMaxScalar(),plt_ax=None):
-    xrig = reshape_step(xinput).copy()    
+
+def transform_step(xinput,retain=4,plots=True,verbose=2,moment=wh_kurtosis,scalar=AvgMaxScalar,plt_ax=None):
+    xold = xinput
     ## Reading and scaling data:-->
-    xold = xrig.copy()
+    xrig = xinput.copy()
+
+    spr = Shaper()
+    xrig = spr.fit_transform(xrig)
     if verbose>0:
         print("Orignial data")
         scale_sanity(xrig)
     slr = Scalar(scalar)
-    slr.fit(xrig)
-    xscaled = slr.transform(xrig) #scale_sanity(xscaled)
+    xscaled = slr.fit_transform(xrig) #scale_sanity(xscaled)
     
     ## Moment calculation: -->
-    clf = Kurtosis(n_retain=retain)
-    clf.fit(xscaled,moment=moment)  ## or co_variance; user inputx
-    xred = clf.transform(xscaled)
+    Kurtosis()
+    clf = Kurtosis(moment=moment,n_retain=retain)
+    xred = clf.fit_transform(xscaled)
     
     ## linear reconstruction:-->
     xpew = clf.transform2(xred)
     ## xred is x reduced| et voila
     xnew = slr.transform2(xpew)
+    if verbose>0:
+        print("Reconstructed data")
+        scale_sanity(xnew)
+    xnew = spr.transform2(xnew)
     err = mean_sq_error(xnew,xold)
     clf.err = err
     ## plotting and results: -->
@@ -55,9 +64,6 @@ def transform_step(xinput,retain=4,plots=True,verbose=2,moment=wh_kurtosis,scala
     if plots:
         plot_embedding(xred,titler=f"{moment.name}_space-{err:.3e}",
                         color_spec=np.sum(xscaled,axis=1),cmap="jet",ax=plt_ax)    
-    if verbose>0:
-        print("Reconstructed data")
-        scale_sanity(xnew)
     if verbose>=-1:
         print(f"{moment.name} reconstruction error after retaining {retain} vectors is {err:.3e}")
     return clf,xold,xnew
@@ -75,7 +81,7 @@ def cantera_step(xinput,NVR=14,MFID=12,indices=indices,references=references,gas
     '''# MFID is Mass fraction index in data; Samul L Jacksons MF
         # NVR is Num of variables to retain; ignore velocity components
     '''
-    xinp = reshape_step(xinput).copy()       
+    xinp = reshape_step(xinput) #.copy()       
     nx,nvs = xinp.shape
     xinp = xinp[:,:NVR]
 
@@ -106,7 +112,7 @@ def cantera_step(xinput,NVR=14,MFID=12,indices=indices,references=references,gas
 
 
 
-def build_dictionary(xinput,retain=4,scalar=AvgMaxScalar()):
+def build_dictionary(xinput,retain=4,scalar=AvgMaxScalar):
     xrig = xinput
     total = {}
     # loader.plotLine(spec=12,time=time_step)
@@ -123,7 +129,7 @@ def build_dictionary(xinput,retain=4,scalar=AvgMaxScalar()):
     return total
 
 
-def retain_analysis(xinput,moment=co_variance,scalar=AvgMaxScalar(),retain_max=13,yscale='linear',err_criterion=mean_sq_error):
+def retain_analysis(xinput,moment=co_variance,scalar=AvgMaxScalar,retain_max=13,yscale='linear',err_criterion=mean_sq_error):
     xrig = reshape_step(xinput).copy()    
     slr = Scalar(scalar)
     slr.fit(xrig)
@@ -148,18 +154,23 @@ def retain_analysis(xinput,moment=co_variance,scalar=AvgMaxScalar(),retain_max=1
 ## resf of the f owl
 
 class Elbow:
-    def __init__(self) -> None:
-        self.loader = LoadOne()
-        self.MyScalar = AvgMaxScalar()
-        self.IMAX = 201
+    def __init__(self,gas='syngas') -> None:
+        self.loader = LoadOne(gas)
+        self.gas = gas
+        self.MyScalar = AvgMaxScalar
+        self.IMAX = len(self.loader.flist)
+        self.dat = self.loader.getData()
+        self.n_retain= 4
         # pass
         # self.mf_plot(100)
 
-    def mf_plot(self,time_step,spec=12):
+    def mf_plot(self,time_step,spec=12):         
         self.loader.plotLine(spec=spec,time=time_step)
+        plt.show()
+        self.loader.plotImg(spec=spec,cmap='jet')
 
-    def mf_data(self,time_step=100,plot=False):
-        return self.loader.getTime(time_step,verbose=-1)[:,:14]
+    def mf_data(self,time_step=10,plot=False):
+        return self.loader.getTime(time_step,verbose=-1)[:,:-3]
 
     def mf_retain(self,time_step,scale='log'):
         # xrig = loader.getTime(time_step,verbose=-1)[:,:14]
@@ -172,7 +183,7 @@ class Elbow:
         # fig.axes[0].set_ylabel("Species reconstruction error")
         # fig.axes[0].set_yscale(scale)
 
-    def mf_embed(self,time_step=100):
+    def mf_embed(self,time_step=10):
         xrig = self.mf_data(time_step)
         fig = plt.figure(figsize=(12,5))
         ax = fig.add_subplot(121, projection='3d')
@@ -182,7 +193,7 @@ class Elbow:
         cmk,kold,knew = transform_step(xrig,moment=wh_kurtosis, scalar=self.MyScalar,plt_ax=ax,verbose=False)        
         self.cmk = cmk
 
-    def mf_orient(self,time_step=100):
+    def mf_orient(self,time_step=10):
         # time_step = 100
         xrig = self.mf_data(time_step)
         cmv,xold,xnew = transform_step(xrig,moment=co_variance, scalar=self.MyScalar,verbose=-2,plots=False)
@@ -202,9 +213,15 @@ class Elbow:
         total = self.total
         plot_compare(total[moment]['old'][source],total[moment]['new'][source],species=specs)
 
-    def mf_build(self,time_index,n_retain=4):
+    def mf_build(self,time_index,n_retain=4,saver=''):
         xrig = self.mf_data(time_index)
         self.total = build_dictionary(xrig,retain=n_retain,scalar=self.MyScalar)
+        self.fpickle_name = f"{saver}{self.gas}-allerrors-{self.MyScalar.name}.pkl"
+        if os.path.exists(self.fpickle_name):
+            with open(self.fpickle_name,'rb') as f:
+                self.err_dict = pickle.load(f)
+        else:
+            self.mf_alldata(saver=saver)
         # return self.total
 
     def mf_errors(self,source):
@@ -216,7 +233,7 @@ class Elbow:
 
         plot_bars(errcv/errcv,errck/errcv,horz=False,indices=self.loader.varid.keys())
     
-    def mf_alldata(self,saver=None):
+    def mf_alldata(self,saver=''):
         total = self.total
         moments = total.keys()
         sources = total['covariance']['old'].keys()
@@ -225,8 +242,8 @@ class Elbow:
         for m in moments:
             err_dict[m] = {k:[] for k in sources}
         for i in range(self.IMAX):
-            self.mf_build(i,n_retain=4)
-            total = self.total
+            xrig = self.mf_data(i)
+            total = build_dictionary(xrig,retain=self.n_retain,scalar=self.MyScalar)
             for m in moments:
                 for k in sources:
                     errik = abs_err(total[m]['old'][k] ,total[m]['new'][k])
@@ -235,8 +252,8 @@ class Elbow:
             for k in sources:
                 err_dict[m][k] = np.array(err_dict[m][k])
         self.err_dict = err_dict
-        if saver!=None:
-            pickle.dump(err_dict)
+        with open(self.fpickle_name,'wb') as f:
+            pickle.dump(err_dict,f)
         # return err_dict
 
     def mf_allerror(self,source,spec=0):
@@ -246,7 +263,7 @@ class Elbow:
         # plot_bars(errcv,errck,horz=False)
         plot_compare(errcv,errck,labels=["Covariance","Cokurtosis"],species=spec)
 
-class RunnerDomain(Elbow):
+class ExtensionT(Elbow):
     def __init__(self, domains = (1,4)) -> None:
         super().__init__()
         xregions = [self.loader.getData()]
@@ -265,3 +282,12 @@ class RunnerDomain(Elbow):
         spr = self.spr
         img_compare(spr.transform2(total[moment]['old'][source]),
                  spr.transform2(total[moment]['new'][source]),species=specs)
+
+
+class Crossings(Elbow):
+    def __init__(self) -> None:
+        super().__init__()
+        self.loader = LoadMPI()
+
+    def mf_plot(self, time_step, spec=12):
+        return self.loader.plotImage(time_step,spec)

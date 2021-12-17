@@ -10,28 +10,37 @@ from IPython.display import display
 
 def Knob(rn):
     species = rn.loader.varid
-    time_slier = IntSlider(value=100,
-            min=0,
-            max=200,
-            step=1)
-    time_slier2 = IntSlider(value=100,min=0,max=200,step=1)
-    spec_select = Dropdown(options=species)
+    flist  = rn.loader.flist
+    nflist = len(flist)
+    def _getTimeSlider(maxVal=nflist):
+        return IntSlider(value=100,min=0,max=maxVal,step=1)
+    def _getFileList(flist=flist):
+        fdics = {f:i for f,i in enumerate(flist)}
+        return Dropdown(options=fdics)
+    def _getSpeciesMenu(options=species):
+        return Dropdown(options=options)
+    def _getSpeciesVector(options = range(len(species))):
+        return Dropdown(options=options)
+
+    time_slier = _getTimeSlider()
+    time_slier2 = _getTimeSlider()
+    spec_select = _getSpeciesMenu()
 
     out1 = widgets.interactive_output(rn.mf_plot,{'time_step':time_slier,'spec':spec_select})
     out2 = widgets.interactive_output(rn.mf_embed,{'time_step':time_slier2})
 
-    retain_slider = Dropdown(options=range(12))
-    time_slider3 = IntSlider(value=100,min=0,max=200,step=1)
+    retain_slider = _getSpeciesVector()
+    time_slider3 = _getTimeSlider()
     out3 = widgets.interactive_output(rn.mf_build,{"time_index":time_slider3,'n_retain':retain_slider}) 
 
 
     moms = Dropdown(options= rn.total.keys())
     sources = Dropdown(options=rn.total['covariance']['old'].keys())
-    specs = Dropdown(options=species)
+    specs = _getSpeciesMenu()
     out4 = widgets.interactive_output(rn.mf_compare,{'moment':moms,'source':sources,'specs':specs})
     out5 =  widgets.interactive_output(rn.mf_errors,{'source':sources})
 
-    slicer = Dropdown(options=range(201))
+    slicer = _getTimeSlider()
     out6 = interactive_output(rn.mf_orient,{'time_step':slicer})
     scales = Dropdown(options=['linear','log'])
     out7 = interactive_output(rn.mf_retain,{'time_step':slicer,'scale':scales})
