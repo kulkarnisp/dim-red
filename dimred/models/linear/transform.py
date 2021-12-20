@@ -1,68 +1,8 @@
 # utilities used in kurtosis analysis
+
 import numpy as np
-import functools as fc
-import os
-from tqdm import tqdm
-
-def co_variance(X,bias=0):
-    nx,i = X.shape ## X is input data matrix 
-    ans = np.zeros((i,i),dtype=float)
-    for a in tqdm(X):
-        ans += np.outer(a,a)
-    return ans/(nx-bias)
-co_variance.name = "co_variance" ## Abuse of function notations
-
-def ex_variance(cm):
-    i,_ = cm.shape
-    fv = np.outer(cm,cm)
-    return fv.reshape(i,i**3)
-
-def ra_kurtosis(X,bias=0):
-    nx,i = X.shape
-    ans = np.zeros((i**3,i))
-    for a in tqdm(X):
-        ans += np.outer(np.outer(np.outer(a,a),a),a)
-    return ans.T/(nx-bias)
-ra_kurtosis.name="Raw_kurtosis"
-
-def co_kurtosis(rand_mat,bias=0):
-    ck = ra_kurtosis(rand_mat,bias)
-    cm = co_variance(rand_mat,bias)
-    ev = ex_variance(cm)
-    return ck- 3*ev
-co_kurtosis.name = "co_kurtosis" 
-
-
-# def outer_Variance()
-
-def val_kurtosis(xscaled):
-    shape = xscaled.shape
-    n = shape[0]
-    nvar = shape[1]
-    CK = np.zeros((nvar, nvar, nvar, nvar))
-
-    for i in range(0,(nvar)):
-        for j in range(0,(nvar)):
-            for k in range(0,(nvar)):
-                for l in range(0,(nvar)):
-                    CK[i,j,k,l] = (np.sum(xscaled[:,i]*xscaled[:,j]*xscaled[:,k]*xscaled[:,l]))
-# #         print(i,j)
-    CK=CK/n
-
-    # CK = ra_kurtosis(xscaled)
-    CV= co_variance(xscaled)
-    
-    # CE = np.zeros((nvar, nvar, nvar, nvar))
-    for i in range(0,(nvar)):
-        for j in range(0,(nvar)):
-            for k in range(0,(nvar)):
-                for l in range(0,(nvar)):
-                    CK[i,j,k,l] = (CK[i,j,k,l] - CV[i,j]*CV[k,l] - CV[i,k]*CV[j,l] - CV[i,l]*CV[j,k])
-    
-    CK_m = CK.reshape(nvar, nvar*nvar*nvar)
-    return CK_m
-
-val_kurtosis.name="val kurtosis"
+import os,time
+from .moments import co_variance,co_kurtosis,val_kurtosis,ra_kurtosis
 
 
 class Kurtosis:
@@ -85,8 +25,10 @@ class Kurtosis:
 
 
     def _calcMoment(self):
+        start = time.time()
         self.cm = self.moment(self.x)
-
+        end = time.time()
+        print(f"Time required for {self.namer} is {(end-start):4e} sec")
 
     def fit(self, X):
         self.x = X

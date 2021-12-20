@@ -10,13 +10,11 @@ from IPython.display import display
 
 def Knob(rn):
     species = rn.loader.varid
-    flist  = rn.loader.flist
-    nflist = len(flist)
+    nflist  = rn.IMAX
+
     def _getTimeSlider(maxVal=nflist):
-        return IntSlider(value=100,min=0,max=maxVal,step=1)
-    def _getFileList(flist=flist):
-        fdics = {f:i for f,i in enumerate(flist)}
-        return Dropdown(options=fdics)
+        return IntSlider(value=10,min=0,max=maxVal,step=1)
+
     def _getSpeciesMenu(options=species):
         return Dropdown(options=options)
     def _getSpeciesVector(options = range(len(species))):

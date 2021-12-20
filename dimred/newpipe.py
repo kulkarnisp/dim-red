@@ -8,7 +8,7 @@ import cantera as ct
 import matplotlib.pyplot as pltss
 import matplotlib.pyplot as plt
 
-from dimred.data.loader import LoadMPI, LoadOne
+from dimred.data.loader import LoadMPI, LoadNumpy, LoadOne
 from dimred.data.preprocess import AvgMaxScalar,  MinMaxScalar, Shaper, MaxAvgScalar
 # dimred.
 from dimred.data.preprocess import scale_sanity,Scalar
@@ -18,6 +18,9 @@ from dimred.models.linear.transform import co_variance,co_kurtosis #,outer co ku
 from dimred.models.linear.transform import val_kurtosis,ra_kurtosis
 from dimred.tester.plotting import plot_embedding,plot_compare,plot_spectra,plot_bars,img_compare
 from dimred.tester.metrics import mean_sq_error,mean_abs_error,abs_err
+
+from tqdm.notebook import tqdm_notebook as tqdm
+from IPython.display import clear_output
 
 wh_kurtosis = val_kurtosis
 ## define which kurtosis to use for calculation
@@ -136,8 +139,8 @@ def retain_analysis(xinput,moment=co_variance,scalar=AvgMaxScalar,retain_max=13,
     xscaled = slr.transform(xrig) #scale_sanity(xscaled)
     
     ## Moment calculation: -->
-    clf = Kurtosis(n_retain=3)
-    clf.fit(xscaled,moment=moment)  ## or co_variance; user inputx
+    clf = Kurtosis(n_retain=3,moment=moment)
+    clf.fit(xscaled)  ## or co_variance; user inputx
     errs = []
     for i in range(0,retain_max):
         clf.n_retain = i
@@ -154,23 +157,25 @@ def retain_analysis(xinput,moment=co_variance,scalar=AvgMaxScalar,retain_max=13,
 ## resf of the f owl
 
 class Elbow:
-    def __init__(self,gas='syngas') -> None:
-        self.loader = LoadOne(gas)
-        self.gas = gas
+    def __init__(self,data_name='premixOne.npy') -> None:
+        # self.loader = LoadOne(gas)
+        self.loader = LoadNumpy(data_name[:4],data_name)
+        self.gas = data_name
         self.MyScalar = AvgMaxScalar
-        self.IMAX = len(self.loader.flist)
-        self.dat = self.loader.getData()
+        self.IMAX = self.loader.x.shape[0]
+        self.dat = self.loader.x
         self.n_retain= 4
         # pass
         # self.mf_plot(100)
 
     def mf_plot(self,time_step,spec=12):         
-        self.loader.plotLine(spec=spec,time=time_step)
-        plt.show()
+        # self.loader.plotLine(spec=spec,time=time_step)
+        # plt.show()
         self.loader.plotImg(spec=spec,cmap='jet')
 
     def mf_data(self,time_step=10,plot=False):
-        return self.loader.getTime(time_step,verbose=-1)[:,:-3]
+        # return self.loader.getTime(time_step,verbose=-1)[:,:-3]
+        return self.loader.x[time_step]
 
     def mf_retain(self,time_step,scale='log'):
         # xrig = loader.getTime(time_step,verbose=-1)[:,:14]
@@ -216,7 +221,7 @@ class Elbow:
     def mf_build(self,time_index,n_retain=4,saver=''):
         xrig = self.mf_data(time_index)
         self.total = build_dictionary(xrig,retain=n_retain,scalar=self.MyScalar)
-        self.fpickle_name = f"{saver}{self.gas}-allerrors-{self.MyScalar.name}.pkl"
+        self.fpickle_name = f"{saver}-errs-{self.gas}-{wh_kurtosis.name}-{self.MyScalar.name}.pkl"
         if os.path.exists(self.fpickle_name):
             with open(self.fpickle_name,'rb') as f:
                 self.err_dict = pickle.load(f)
@@ -241,13 +246,14 @@ class Elbow:
 
         for m in moments:
             err_dict[m] = {k:[] for k in sources}
-        for i in range(self.IMAX):
+        for i in tqdm(range(self.IMAX)):
             xrig = self.mf_data(i)
             total = build_dictionary(xrig,retain=self.n_retain,scalar=self.MyScalar)
             for m in moments:
                 for k in sources:
                     errik = abs_err(total[m]['old'][k] ,total[m]['new'][k])
                     err_dict[m][k].append(errik)
+            clear_output(wait=True)
         for m in moments:
             for k in sources:
                 err_dict[m][k] = np.array(err_dict[m][k])

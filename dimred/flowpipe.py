@@ -15,11 +15,11 @@ from dimred.models.linear.transform import val_kurtosis,ra_kurtosis
 from dimred.tester.plotting import plot_embedding,plot_compare,plot_spectra,plot_bars,img_compare
 from dimred.tester.metrics import mean_sq_error,mean_abs_error,abs_err
 
-
+wh_kurtosis = val_kurtosis
 mom_folder = os.path.join(datapath__,"moments")
 
 class ServicePIpe:
-    def __init__(self,data,moment=co_kurtosis,scalar=AvgMaxScalar,n_retain=4) -> None:
+    def __init__(self,data,moment=co_variance,scalar=AvgMaxScalar,n_retain=4) -> None:
         self.xinput = data.x.copy()
         self.xname = data.xname
         self.shaper= Shaper()
@@ -95,7 +95,7 @@ class Elbow2:
         self.total = {}
         self.vari = ServicePIpe(data,moment=co_variance,n_retain=n_retain,scalar=self.myScalar)
         self.vari.build()
-        self.kurt = ServicePIpe(data,moment=co_kurtosis,n_retain=n_retain,scalar=self.myScalar)
+        self.kurt = ServicePIpe(data,moment=wh_kurtosis,n_retain=n_retain,scalar=self.myScalar)
         self.kurt.build()
 
     def mf_plot(self,spec=0):

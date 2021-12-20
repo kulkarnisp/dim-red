@@ -9,6 +9,8 @@ __pycache__/
 
 # data files
 *.npy
+*.dat
+*.pkl
 
 # Distribution / packaging
 .Python

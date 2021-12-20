@@ -86,7 +86,7 @@ def img_compare(xold,xnew,titler="Species -X",species=2,labels=["Origin","Recons
             nx,ny = x.shape
             aspect=ny/nx*0.82
 #         img=ax[i].imshow(x,cmap=cmaps[i])
-        plt.imshow(x,cmap=cmaps[i])
+        plt.imshow(x,cmap=cmaps[i],aspect=aspect)
 #         ax[i].set_title(labels[i])
         plt.title(labels[i])
         plt.colorbar()

@@ -8,6 +8,8 @@ from  ipywidgets.widgets import Tab,IntSlider,Dropdown,IntRangeSlider,VBox,HBox,
 from IPython.display import display
 
 
+
+
 def Knob2(rn):
     species = rn.data.varid
 
@@ -15,9 +17,9 @@ def Knob2(rn):
         return IntSlider(value=1,min=0,max=maxVal,step=1)
 
     def _getSpeciesMenu(options=species):
-        return Dropdown(options=options)
+        return Dropdown(options=options,description='Select species -')
     def _getSpeciesVector(options = range(len(species))):
-        return Dropdown(options=options)
+        return Dropdown(options=options,description='Retained vectors',value=5)
 
     spec_select = _getSpeciesMenu()
 
@@ -28,29 +30,31 @@ def Knob2(rn):
     ],title='Data')
 
     out2 = widgets.interactive_output(rn.mf_embed,{'n_retain':_getTimeSlider()})
-    embedtab= VBox(children=[ out2])
+    emb_descr= widgets.Text(
+                    value='Low dimensional embedding of original HCCI dataset',
+                    placeholder='3D projection scatterplot',
+                    description='Effect:',
+                    disabled=False)
 
+    embedtab= VBox(children=[ emb_descr,out2])
     
     retain_slider = _getSpeciesVector()
     out3 = widgets.interactive_output(rn.mf_build,{'n_retain':retain_slider}) 
     specs = _getSpeciesMenu()
     out4 = widgets.interactive_output(rn.mf_compare,{'specs':specs})
-    horz = Dropdown(options=[True,False])
+    horz = Dropdown(options=[True,False],description='Horizantal- ')
     out5 =  widgets.interactive_output(rn.mf_errors,{'n_retain':retain_slider,'horz':horz})
 
     midList = [retain_slider,out3]
     inigram = VBox(children=midList +[specs,out4])
-    errgram = VBox(children=midList+ [out5])
+    errgram = VBox(children=midList+ [horz,out5])
 
-    scales = Dropdown(options=['linear','log'])
+    scales = Dropdown(options=['linear','log'],description='Scale')
     out6 = interactive_output(rn.mf_orient,{'scale':scales})
     orientab = VBox(children=[scales,out6])
     
-
-
     specs2 = Dropdown(options=species)
     xerox =VBox(children=[specs2])
-
 
     topbar = Tab(children=[datatab,embedtab,inigram,errgram,orientab,xerox])
     titles = ['dataset','embedding','reconstr','species','vectors','xerox']

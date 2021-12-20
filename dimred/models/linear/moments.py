@@ -1,57 +1,107 @@
-from __future__ import division
+
+from numba import jit,vectorize,njit
 
 import numpy as np
-import math
+import functools as fc
+import os
+import time
+# from tqdm.notebook import tqdm_notebook as tqdm
+from tqdm import tqdm
+
+# tqdm  = lambda x : x
+
+# def co_variance(X,bias=0):
+#     nx,i = X.shape ## X is input data matrix 
+#     # ans = np.zeros((i,i))#,dtype=float)
+#     # for a in X:
+#     #     ans += np.outer(a,a)
+#     ans = X.T.dot(X)
+#     return ans/(nx-bias)
+
+def co_variance(x,bias=0):
+    return x.T.dot(x)/(x.shape[0]-bias)
+co_variance.name = "co_variance" ## Abuse of function notations
 
 
-def calculate_variance(X):
-    """ Return the variance of the features in dataset X """
-    mean = np.ones(np.shape(X)) * X.mean(0)
-    n_samples = np.shape(X)[0]
-    variance = (1 / n_samples) * np.diag((X - mean).T.dot(X - mean))
+def ex_variance(cm):
+    i,_ = cm.shape
+    fv = np.outer(cm,cm)
+    return fv.reshape(i,i**3)
+
+
+def ra_kurtosis(X,bias=0):
+    nx,i = X.shape
+    ans = np.zeros((i**3,i))
+    looper = tqdm(X)
+    for a in looper:
+        ans += np.outer(np.outer(np.outer(a,a),a),a)
+    return ans.T/(nx-bias)
+ra_kurtosis.name="Raw_kurtosis"
+
+
+def co_kurtosis(rand_mat,bias=0):
+    ck = ra_kurtosis(rand_mat,bias)
+    cm = co_variance(rand_mat,1) #UNBIASED est
+    ev = ex_variance(cm)
+    return ck- 3*ev
+co_kurtosis.name = "co_kurtosis" 
+
+@jit
+def val_substraction(CK,CV):
+    nvar = CV.shape[-1]
+    for i in range(nvar):
+        for j in range(nvar):
+            for k in range(nvar):
+                for l in range(nvar):
+                    CK[i,j,k,l] = (CK[i,j,k,l] - CV[i,j]*CV[k,l] - CV[i,k]*CV[j,l] - CV[i,l]*CV[j,k])
+    return CK
+
+# def outer_Variance()
+def val_kurtosis(xscaled):
+    n,nvar = xscaled.shape
+
+    CK = ra_kurtosis(xscaled).reshape(nvar,nvar,nvar,nvar)
+    CV= co_variance(xscaled)
     
-    return variance
+    CK = val_substraction(CK,CV)
+    CK_m = CK.reshape(nvar, nvar*nvar*nvar)
+    return CK_m
+val_kurtosis.name="val_kurtosis"
 
 
-def calculate_std_dev(X):
-    """ Calculate the standard deviations of the features in dataset X """
-    std_dev = np.sqrt(calculate_variance(X))
-    return std_dev
+## -------------------------------------------------------------------------
+
+### Following function isued for testing accuracy with index definitio of kurtosis
+### Warning-~very slow execution without numba jit
 
 
-def euclidean_distance(x1, x2):
-    """ Calculates the l2 distance between two vectors """
-    distance = 0
-    # Squared distance between each coordinate
-    for i in range(len(x1)):
-        distance += pow((x1[i] - x2[i]), 2)
-    return math.sqrt(distance)
+@jit
+def ex_kurtosis(u):
+    nx,nv = u.shape
+    mom = np.zeros((nv, nv))#, dtype=float, order='F')
+    # compute covariance matrix
+    for j in range(nv):
+        for i in range(nv):
+            for n in range(nx):
+                mom[i,j] = mom[i,j] + u[n,i] * u[n,j]                
+    mom2 = mom/nx 
 
-
-def accuracy_score(y_true, y_pred):
-    """ Compare y_true to y_pred and return the accuracy """
-    accuracy = np.sum(y_true == y_pred, axis=0) / len(y_true)
-    return accuracy
-
-
-def calculate_covariance_matrix(X, Y=None):
-    """ Calculate the covariance matrix for the dataset X """
-    if Y is None:
-        Y = X
-    n_samples = np.shape(X)[0]
-    covariance_matrix = (1 / (n_samples-1)) * (X - X.mean(axis=0)).T.dot(Y - Y.mean(axis=0))
-
-    return np.array(covariance_matrix, dtype=float)
- 
-
-def calculate_correlation_matrix(X, Y=None):
-    """ Calculate the correlation matrix for the dataset X """
-    if Y is None:
-        Y = X
-    n_samples = np.shape(X)[0]
-    covariance = (1 / n_samples) * (X - X.mean(0)).T.dot(Y - Y.mean(0))
-    std_dev_X = np.expand_dims(calculate_std_dev(X), 1)
-    std_dev_y = np.expand_dims(calculate_std_dev(Y), 1)
-    correlation_matrix = np.divide(covariance, std_dev_X.dot(std_dev_y.T))
-
-    return np.array(correlation_matrix, dtype=float)
+    tmp = np.zeros((nv,nv,nv,nv))#, dtype=float, order='F')
+    # compute cokurtosis matrix
+    for l in range(nv):
+        for k in range(nv):
+            for j in range(nv):
+                for i in range(nv):
+                    for n in range(nx):
+                        tmp[i,j,k,l] = tmp[i,j,k,l] + u[n,i] * u[n,j] * u[n,k] * u[n,l]    
+    
+    tmp=tmp/nx
+    
+    for l in range(nv):
+        for k in range(nv):
+            for j in range(nv):
+                for i in range(nv):
+                    tmp[i,j,k,l] = tmp[i,j,k,l] - mom2[i,j]*mom2[k,l] - mom2[i,k]*mom2[j,l] - mom2[i,l]*mom2[j,k]
+                    
+    return tmp.reshape(nv,nv**3)
+ex_kurtosis.name="For loop kurtosis"
