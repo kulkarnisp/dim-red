@@ -13,11 +13,14 @@ import pandas as pd
 
 datapath__ = os.path.abspath(os.path.join(os.path.dirname( __file__ ), '..','..', 'datasets'))
 
+localpath__ = "/home/shubham/strial/Combust/onef/"
 # from utils import normalise, featurise
 
 class LoadOne():
-    def __init__(self,data_name="methane/") -> None:
-        data_path = os.path.join(datapath__,data_name)
+    def __init__(self,data_name="methane/",data_path=None) -> None:
+        if data_path is None:
+            data_path = localpath__ ## dataPath__
+        data_path = os.path.join(data_path,data_name)
         self.data_path = data_path
         self.loadFiles()
 

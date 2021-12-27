@@ -5,8 +5,8 @@ import numpy as np
 import functools as fc
 import os
 import time
-# from tqdm.notebook import tqdm_notebook as tqdm
-from tqdm import tqdm
+from tqdm.notebook import tqdm_notebook as tqdm
+# from tqdm import tqdm
 
 # tqdm  = lambda x : x
 

@@ -16,10 +16,11 @@ from dimred.data.preprocess import scale_sanity,Scalar
 from dimred.models.linear.transform import Kurtosis
 from dimred.models.linear.transform import co_variance,co_kurtosis #,outer co kurtosis
 from dimred.models.linear.transform import val_kurtosis,ra_kurtosis
-from dimred.tester.plotting import plot_embedding,plot_compare,plot_spectra,plot_bars,img_compare
+from dimred.tester.plotting import plot_embedding,plot_compare,plot_spectra,plot_bars,img_compare, three_compare
 from dimred.tester.metrics import mean_sq_error,mean_abs_error,abs_err
 
 from tqdm.notebook import tqdm_notebook as tqdm
+# from tqdm import tqdm
 from IPython.display import clear_output
 
 wh_kurtosis = val_kurtosis
@@ -74,21 +75,27 @@ def transform_step(xinput,retain=4,plots=True,verbose=2,moment=wh_kurtosis,scala
 
 ## CAntera--------------------------------------------------------------------------------->
 
-syngas = ct.Solution('cantera-module/COH2.cti')
+# syngas = ct.Solution('cantera-module/COH2.cti')
+# syngas = ct.Solution('cantera-module/premix.cti')
 
-indices = {'temp':12,'press':13}
+indices = {'temp':-2,'press':-1}
 references = {'press':1.41837E+05,'temp':120} ## same keys
+references = {'press':1.,'temp':1.} ## same keys
 
 
-def cantera_step(xinput,NVR=14,MFID=12,indices=indices,references=references,gas=syngas,verbose=2):
+def cantera_step(xinput,gas,indices=indices,references=references,verbose=2):
+# def cantera_step(xinput,gasinfo,verbose=2):
     '''# MFID is Mass fraction index in data; Samul L Jacksons MF
         # NVR is Num of variables to retain; ignore velocity components
     '''
+    # gasinfo = LoadNumpy()
+    # gaspath = os.path.join(gasinfo.xpath,gasinfo.chemistry)
+    # gas = ct.Solution(gaspath)
+    MFID=-2
     xinp = reshape_step(xinput) #.copy()       
     nx,nvs = xinp.shape
-    xinp = xinp[:,:NVR]
 
-    ref_array = np.ones(NVR) #reference values required for conversion into the SI units
+    ref_array = np.ones(nvs) #reference values required for conversion into the SI units
     for k,v in indices.items():
         ref_array[v] = references[k]
 
@@ -104,7 +111,7 @@ def cantera_step(xinput,NVR=14,MFID=12,indices=indices,references=references,gas
     #     print(i)                                            
         sample = xinp[i]*ref_array                 #converting into the SI units
         gas.Y = sample[:MFID]                                #setting up the mass fraction of the species
-        gas.TP = sample[MFID:NVR]                             #setting up the temperature and pressure of gas
+        gas.TP = sample[MFID:]                             #setting up the temperature and pressure of gas
         prod_rates.append(gas.net_production_rates)      #calculating production/consumption rates
         react_rates.append(gas.net_rates_of_progress)    #calculating reaction rates
         heat_rates.append(gas.heat_release_rate)    #calculating reaction rates
@@ -115,18 +122,18 @@ def cantera_step(xinput,NVR=14,MFID=12,indices=indices,references=references,gas
 
 
 
-def build_dictionary(xinput,retain=4,scalar=AvgMaxScalar):
+def build_dictionary(xinput,retain=4,scalar=AvgMaxScalar,gasobj=None):
     xrig = xinput
     total = {}
     # loader.plotLine(spec=12,time=time_step)
     cmv,xold,xnew = transform_step(xrig,retain=retain,moment=co_variance, scalar=scalar,verbose=0,plots=False)
-    news = cantera_step(xnew,verbose=0) 
-    olds = cantera_step(xold,verbose=0)
+    news = cantera_step(xnew,verbose=0,gas=gasobj) 
+    olds = cantera_step(xold,verbose=0,gas=gasobj)
     total['covariance'] = {'old':olds,'new':news}
 
     cmk,xold,xnew = transform_step(xrig,retain=retain,moment=wh_kurtosis, scalar=scalar,verbose=0,plots=False)
-    news = cantera_step(xnew,verbose=0) 
-    olds = cantera_step(xold,verbose=0)
+    news = cantera_step(xnew,verbose=0,gas=gasobj) 
+    olds = cantera_step(xold,verbose=0,gas=gasobj)
     total['cokurtosis'] = {'old':olds,'new':news}
 
     return total
@@ -161,6 +168,7 @@ class Elbow:
         # self.loader = LoadOne(gas)
         self.loader = LoadNumpy(data_name[:4],data_name)
         self.gas = data_name
+        self.gasobj = self.loader.gasobj
         self.MyScalar = AvgMaxScalar
         self.IMAX = self.loader.x.shape[0]
         self.dat = self.loader.x
@@ -169,9 +177,8 @@ class Elbow:
         # self.mf_plot(100)
 
     def mf_plot(self,time_step,spec=12):         
-        # self.loader.plotLine(spec=spec,time=time_step)
-        # plt.show()
-        self.loader.plotImg(spec=spec,cmap='jet')
+        self.loader.plotLine(self.mf_data(time_step),spec=spec)
+        self.loader.plotImg(species=spec,cmap='jet')
 
     def mf_data(self,time_step=10,plot=False):
         # return self.loader.getTime(time_step,verbose=-1)[:,:-3]
@@ -214,13 +221,17 @@ class Elbow:
             u2,s2,v = np.linalg.svd(wh_kurtosis(xrig).T,full_matrices=False)
             outmat.append(u1@u2)
 
-    def mf_compare(self,moment,source,specs=0):
+    def mf_compare(self,source,specs=0,**kwargs):
         total = self.total
-        plot_compare(total[moment]['old'][source],total[moment]['new'][source],species=specs)
+        x0 = total['covariance']['old'][source][:,specs]
+        x1 = total['covariance']['new'][source][:,specs]
+        x2 = total['cokurtosis']['new'][source][:,specs]
+        # plot_compare(total[moment]['old'][source],total[moment]['new'][source],species=specs)
+        three_compare(x0,x1,x2,titler=f"Species -x{self.loader.xvar[specs]}")
 
     def mf_build(self,time_index,n_retain=4,saver=''):
         xrig = self.mf_data(time_index)
-        self.total = build_dictionary(xrig,retain=n_retain,scalar=self.MyScalar)
+        self.total = build_dictionary(xrig,retain=n_retain,scalar=self.MyScalar,gasobj=self.gasobj)
         self.fpickle_name = f"{saver}-errs-{self.gas}-{wh_kurtosis.name}-{self.MyScalar.name}.pkl"
         if os.path.exists(self.fpickle_name):
             with open(self.fpickle_name,'rb') as f:
@@ -229,7 +240,7 @@ class Elbow:
             self.mf_alldata(saver=saver)
         # return self.total
 
-    def mf_errors(self,source):
+    def mf_errors(self,source,**kwargs):
         moment = "covariance"
         total = self.total
         errcv = abs_err(total[moment]['old'][source] ,total[moment]['new'][source])
@@ -248,7 +259,7 @@ class Elbow:
             err_dict[m] = {k:[] for k in sources}
         for i in tqdm(range(self.IMAX)):
             xrig = self.mf_data(i)
-            total = build_dictionary(xrig,retain=self.n_retain,scalar=self.MyScalar)
+            total = build_dictionary(xrig,retain=self.n_retain,scalar=self.MyScalar,gasobj=self.gasobj)
             for m in moments:
                 for k in sources:
                     errik = abs_err(total[m]['old'][k] ,total[m]['new'][k])

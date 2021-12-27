@@ -15,13 +15,30 @@ def plot_compare(xold,xnew,titler="Species -X",species=2,labels=["Origin","Recon
     ax[0].plot(xold,'b',label=labels[0])
     ax[0].plot(xnew,'r',label=labels[1])
     err = np.mean((xold-xnew)**2)**0.5
-    print(f"Average Error is {avg_err:.4f}")
+    print(f"Average Error is {avg_err:.3e}")
     ax[0].set_title(titler+f"{species} err:{err:.4e}")
     ax[1].plot(xold-xnew,"g")
     ax[1].set_title(f"Error Comparison")
 
     ax[0].legend()
     return fig
+
+def three_compare(x0,x1,x2,titler="Species -X"):
+    fig,ax = plt.subplots(ncols=2,figsize=(13,6))
+    labels = ["Original","Covariance","Cokurtosis"]
+    ax[0].plot(x0,'k--',label=labels[0])
+    ax[0].plot(x1,'b',label=labels[1])
+    ax[0].plot(x2,'r',label=labels[2])
+    print(f"Covariance Error is {np.mean(abs(x0-x1)):.3e}")
+    print(f"Cokurtosis Error is {np.mean(abs(x0-x2)):.3e}")
+
+    ax[0].set_title(titler+f"Reconstruction plot")
+    ax[1].plot(x1-x2,"g")
+    ax[1].set_title(f"Error Comparison")
+    ax[0].legend()
+    return fig
+
+
 
 
 def plot_planar(embd_vector,color_spec=None,cmap="viridis",titler="Planar space",ax=None):
@@ -94,8 +111,8 @@ def img_compare(xold,xnew,titler="Species -X",species=2,labels=["Origin","Recons
         plt.show()
     return fig
 
-def plot_bars(errcv,errck,horz=True,labels=["Covariance","Kurtosis"],indices=None):
 
+def plot_bars(errcv,errck,horz=True,labels=["Covariance","Kurtosis"],indices=None):
     df1 = pd.DataFrame([errcv,errck]).T
     df1.columns = labels
     if indices!= None:

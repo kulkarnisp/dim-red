@@ -13,12 +13,12 @@ def Knob(rn):
     nflist  = rn.IMAX
 
     def _getTimeSlider(maxVal=nflist):
-        return IntSlider(value=10,min=0,max=maxVal,step=1)
+        return IntSlider(value=10,min=0,max=maxVal,step=1,description='sampling rate')
 
     def _getSpeciesMenu(options=species):
-        return Dropdown(options=options)
+        return Dropdown(options=options,description='Select Species')
     def _getSpeciesVector(options = range(len(species))):
-        return Dropdown(options=options)
+        return Dropdown(options=options,description='Retain vectors-')
 
     time_slier = _getTimeSlider()
     time_slier2 = _getTimeSlider()
@@ -31,12 +31,10 @@ def Knob(rn):
     time_slider3 = _getTimeSlider()
     out3 = widgets.interactive_output(rn.mf_build,{"time_index":time_slider3,'n_retain':retain_slider}) 
 
-
-    moms = Dropdown(options= rn.total.keys())
     sources = Dropdown(options=rn.total['covariance']['old'].keys())
     specs = _getSpeciesMenu()
-    out4 = widgets.interactive_output(rn.mf_compare,{'moment':moms,'source':sources,'specs':specs})
-    out5 =  widgets.interactive_output(rn.mf_errors,{'source':sources})
+    out4 = widgets.interactive_output(rn.mf_compare,{'source':sources,'specs':specs,'time_index':time_slider3,'n_retain':retain_slider})
+    out5 =  widgets.interactive_output(rn.mf_errors,{'source':sources,'time_index':time_slider3,'n_retain':retain_slider})
 
     slicer = _getTimeSlider()
     out6 = interactive_output(rn.mf_orient,{'time_step':slicer})
@@ -55,11 +53,11 @@ def Knob(rn):
     embedtab= VBox(children=[
         time_slier2, out2])
 
-    midList = [time_slider3,retain_slider,out3,moms,sources,specs]
-    inigram = VBox(children=midList +[out4])
-    errgram = VBox(children=midList[:-3]+ [sources,out5])
+    midList = [time_slider3,retain_slider,out3,sources]
+    inigram = VBox(children=midList +[specs,out4])
+    errgram = VBox(children=midList+ [out5])
 
-    orient = VBox(children=[slicer,scales,out6,out7])
+    orient = VBox(children=[slicer,out6,scales,out7])
     
     sources2 = Dropdown(options=rn.total['covariance']['old'].keys())
     specs2 = Dropdown(options=species)
