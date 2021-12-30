@@ -6,6 +6,11 @@ __pycache__/
 # C extensions
 *.so
 
+## pyload notebooks
+.mixture*.ipynb
+.hcci*.ipynb
+.oned*.ipynb
+
 
 # data files
 *.npy
